@@ -1,8 +1,52 @@
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
 import Topbar from '@/components/layout/Topbar'
+import MaintenanceForm from '@/components/forms/MaintenanceForm'
 
 export const dynamic = 'force-dynamic'
 
-export default function SubmitMaintenancePage() {
+export default async function SubmitMaintenancePage() {
+  const session = await auth()
+
+  if (!session?.user?.id) {
+    redirect('/login')
+  }
+
+  let properties: {
+    id: string
+    name: string
+    rooms: { id: string; name: string }[]
+  }[] = []
+
+  try {
+    const propertyUsers = await prisma.propertyUser.findMany({
+      where: { userId: session.user.id },
+      include: {
+        property: {
+          include: {
+            areas: {
+              include: {
+                rooms: {
+                  where: { active: true },
+                  select: { id: true, name: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+
+    properties = propertyUsers.map((pu) => ({
+      id: pu.property.id,
+      name: pu.property.name,
+      rooms: pu.property.areas.flatMap((a) => a.rooms),
+    }))
+  } catch {
+    // DB not connected
+  }
+
   return (
     <div>
       <Topbar title="Report Maintenance Issue" />
@@ -11,9 +55,15 @@ export default function SubmitMaintenancePage() {
           <h2 className="text-lg font-semibold text-text-main">
             Maintenance Issue Form
           </h2>
-          <p className="mt-4 text-sm text-text-sub">
-            Maintenance reporting form coming soon.
-          </p>
+          <div className="mt-6">
+            {properties.length === 0 ? (
+              <p className="text-sm text-text-sub">
+                No properties assigned to your account. Contact an administrator.
+              </p>
+            ) : (
+              <MaintenanceForm properties={properties} />
+            )}
+          </div>
         </div>
       </div>
     </div>
