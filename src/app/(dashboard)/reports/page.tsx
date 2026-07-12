@@ -1,20 +1,92 @@
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { redirect } from 'next/navigation'
 import Topbar from '@/components/layout/Topbar'
+import { ReportFilterBar } from '@/components/ReportFilterBar'
 
 export const dynamic = 'force-dynamic'
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  const session = await auth()
+
+  if (!session?.user?.id) {
+    redirect('/login')
+  }
+
+  const propertyFilter =
+    session.user.role === 'SUPER_ADMIN'
+      ? {}
+      : { propertyId: { in: session.user.propertyIds } }
+
+  const reports = await prisma.dailyReport.findMany({
+    where: propertyFilter,
+    include: {
+      property: { select: { id: true, name: true } },
+      submittedBy: { select: { id: true, name: true } },
+    },
+    orderBy: { reportDate: 'desc' },
+  })
+
+  const properties = await prisma.property.findMany({
+    where:
+      session.user.role === 'SUPER_ADMIN'
+        ? {}
+        : { id: { in: session.user.propertyIds } },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  })
+
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+  const recentReports = await prisma.dailyReport.findMany({
+    where: {
+      ...propertyFilter,
+      reportDate: { gte: sevenDaysAgo },
+    },
+    select: { reportDate: true, propertyId: true },
+  })
+
+  const missingReports: Array<{ date: string; propertyName: string; propertyId: string }> = []
+
+  for (const property of properties) {
+    const propertyReportDates = recentReports
+      .filter((r) => r.propertyId === property.id)
+      .map((r) => r.reportDate.toISOString().split('T')[0])
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const dateStr = d.toISOString().split('T')[0]
+
+      if (!propertyReportDates.includes(dateStr)) {
+        missingReports.push({ date: dateStr, propertyName: property.name, propertyId: property.id })
+      }
+    }
+  }
+
+  missingReports.sort((a, b) => b.date.localeCompare(a.date))
+
+  const formatted = reports.map((r) => ({
+    id: r.id,
+    reportDate: r.reportDate.toISOString().split('T')[0],
+    createdAt: r.createdAt.toISOString(),
+    notes: r.notes,
+    occupancy: r.occupancy,
+    supplies: r.supplies,
+    property: r.property,
+    submittedBy: r.submittedBy,
+  }))
+
   return (
     <div>
       <Topbar title="Reports" />
       <div className="p-6">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-text-main">
-            Daily Reports
-          </h2>
-          <p className="mt-4 text-sm text-text-sub">
-            Report history and management coming soon.
-          </p>
-        </div>
+        <ReportFilterBar
+          reports={formatted}
+          properties={properties}
+          missingReports={missingReports}
+        />
       </div>
     </div>
   )

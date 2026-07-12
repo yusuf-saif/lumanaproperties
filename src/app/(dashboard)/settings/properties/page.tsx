@@ -1,20 +1,57 @@
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { redirect } from 'next/navigation'
 import Topbar from '@/components/layout/Topbar'
+import { PropertyManager } from '@/components/PropertyManager'
 
 export const dynamic = 'force-dynamic'
 
-export default function PropertiesPage() {
+export default async function PropertiesPage() {
+  const session = await auth()
+
+  if (!session?.user?.id) {
+    redirect('/login')
+  }
+
+  if (session.user.role !== 'SUPER_ADMIN') {
+    redirect('/')
+  }
+
+  const properties = await prisma.property.findMany({
+    include: {
+      areas: {
+        include: {
+          rooms: true,
+        },
+      },
+    },
+    orderBy: { name: 'asc' },
+  })
+
+  const formatted = properties.map((p) => ({
+    id: p.id,
+    name: p.name,
+    address: p.address,
+    active: p.active,
+    areas: p.areas.map((a) => ({
+      id: a.id,
+      name: a.name,
+      rooms: a.rooms.map((r) => ({
+        id: r.id,
+        name: r.name,
+        type: r.type,
+        baseRate: r.baseRate,
+        status: r.status,
+        active: r.active,
+      })),
+    })),
+  }))
+
   return (
     <div>
-      <Topbar title="Properties" />
+      <Topbar title="Property Management" />
       <div className="p-6">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-text-main">
-            Property Management
-          </h2>
-          <p className="mt-4 text-sm text-text-sub">
-            Property configuration and area/room management coming soon.
-          </p>
-        </div>
+        <PropertyManager initialProperties={formatted} />
       </div>
     </div>
   )
