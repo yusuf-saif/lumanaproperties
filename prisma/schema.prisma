@@ -1,0 +1,180 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  PROPERTY_MANAGER
+  STAFF
+  VIEWER
+}
+
+enum RoomType {
+  STUDIO
+  ONE_BEDROOM
+  TWO_BEDROOM
+  THREE_BEDROOM
+  PENTHOUSE
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  BLOCKED
+}
+
+enum MaintenancePriority {
+  URGENT
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  ONLINE
+}
+
+enum BookingSource {
+  DIRECT
+  AIRBNB
+  BOOKING_COM
+  OTHER
+}
+
+model User {
+  id                   String             @id @default(cuid())
+  name                 String
+  email                String             @unique
+  password             String
+  role                 Role               @default(STAFF)
+  active               Boolean            @default(true)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  propertyUsers        PropertyUser[]
+  reports              DailyReport[]
+  maintenanceRaised    MaintenanceIssue[] @relation("RaisedBy")
+  maintenanceResolved  MaintenanceIssue[] @relation("ResolvedBy")
+  incomeRecords        IncomeRecord[]
+}
+
+model Property {
+  id            String           @id @default(cuid())
+  name          String
+  address       String
+  active        Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  areas         Area[]
+  propertyUsers PropertyUser[]
+  reports       DailyReport[]
+  maintenance   MaintenanceIssue[]
+}
+
+model PropertyUser {
+  id         String   @id @default(cuid())
+  userId     String
+  propertyId String
+  user       User     @relation(fields: [userId], references: [id])
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  @@unique([userId, propertyId])
+}
+
+model Area {
+  id         String   @id @default(cuid())
+  name       String
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  active     Boolean  @default(true)
+  rooms      Room[]
+}
+
+model Room {
+  id              String           @id @default(cuid())
+  name            String
+  type            RoomType
+  baseRate        Float
+  status          RoomStatus       @default(AVAILABLE)
+  areaId          String
+  area            Area             @relation(fields: [areaId], references: [id])
+  active          Boolean          @default(true)
+  statusUpdatedAt DateTime         @default(now())
+  maintenance     MaintenanceIssue[]
+  incomeRecords   IncomeRecord[]
+}
+
+model DailyReport {
+  id           String   @id @default(cuid())
+  reportDate   DateTime
+  propertyId   String
+  submittedById String
+  property     Property @relation(fields: [propertyId], references: [id])
+  submittedBy  User     @relation(fields: [submittedById], references: [id])
+  occupancy    Json
+  supplies     Json
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  @@unique([propertyId, reportDate])
+}
+
+model MaintenanceIssue {
+  id              String              @id @default(cuid())
+  title           String
+  description     String
+  priority        MaintenancePriority @default(NORMAL)
+  status          MaintenanceStatus   @default(OPEN)
+  photos          String[]
+  propertyId      String
+  roomId          String
+  raisedById      String
+  resolvedById    String?
+  resolvedAt      DateTime?
+  resolutionNotes String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  property        Property            @relation(fields: [propertyId], references: [id])
+  room            Room                @relation(fields: [roomId], references: [id])
+  raisedBy        User                @relation("RaisedBy", fields: [raisedById], references: [id])
+  resolvedBy      User?               @relation("ResolvedBy", fields: [resolvedById], references: [id])
+}
+
+model InviteToken {
+  id        String   @id @default(cuid())
+  email     String
+  role      Role
+  token     String   @unique @default(cuid())
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model IncomeRecord {
+  id            String        @id @default(cuid())
+  roomId        String
+  recordedById  String
+  amount        Float
+  paymentMethod PaymentMethod
+  bookingSource BookingSource
+  checkInDate   DateTime
+  checkOutDate  DateTime
+  guestName     String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  room          Room          @relation(fields: [roomId], references: [id])
+  recordedBy    User          @relation(fields: [recordedById], references: [id])
+}

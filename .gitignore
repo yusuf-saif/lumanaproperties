@@ -1,0 +1,8 @@
+.claude/
+AGENTS.md
+.opencode/
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
