@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.claude
+.opencode
+AGENTS.md
+.env
+.env.*
+!.env.example
+tsconfig.tsbuildinfo
+prisma/migrations
