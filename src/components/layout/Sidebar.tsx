@@ -17,12 +17,12 @@ import {
 import { cn } from '@/lib/utils/cn'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/properties', label: 'Properties', icon: Building2, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER'] },
-  { href: '/daily-reports', label: 'Daily Reports', icon: ClipboardList, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
-  { href: '/income', label: 'Income', icon: DollarSign, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
-  { href: '/maintenance', label: 'Maintenance', icon: Wrench, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
-  { href: '/reports', label: 'Reports', icon: FileText, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/daily-reports', label: 'Daily Reports', icon: ClipboardList, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/income', label: 'Income', icon: DollarSign, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/maintenance', label: 'Maintenance', icon: Wrench, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/reports', label: 'Reports', icon: FileText, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
 ]
 
 const settingsItems = [
@@ -39,8 +39,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { data: session } = useSession()
   const userRole = session?.user?.role
 
-  const filteredNav = navItems.filter(item => item.roles.includes(userRole ?? ''))
-  const filteredSettings = settingsItems.filter(item => item.roles.includes(userRole ?? ''))
+  const filteredNav = userRole
+    ? navItems.filter(item => item.roles.includes(userRole))
+    : navItems
+  const filteredSettings = userRole
+    ? settingsItems.filter(item => item.roles.includes(userRole))
+    : []
 
   return (
     <>
