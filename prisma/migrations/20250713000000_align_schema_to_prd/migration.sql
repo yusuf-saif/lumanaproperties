@@ -57,17 +57,40 @@ ALTER TABLE "User" ADD COLUMN "lastLoginAt" TIMESTAMP(3),
 ADD COLUMN "phone" TEXT;
 
 -- AlterTable Room: baseRate → dailyRate, add amenities
-ALTER TABLE "Room" DROP COLUMN "baseRate",
-ADD COLUMN "amenities" JSONB,
-ADD COLUMN "dailyRate" DOUBLE PRECISION NOT NULL;
+ALTER TABLE "Room" ADD COLUMN "amenities" JSONB,
+ADD COLUMN "dailyRate" DOUBLE PRECISION;
+UPDATE "Room" SET "dailyRate" = 0 WHERE "dailyRate" IS NULL;
+ALTER TABLE "Room" ALTER COLUMN "dailyRate" SET NOT NULL,
+ALTER COLUMN "dailyRate" SET DEFAULT 0;
+ALTER TABLE "Room" DROP COLUMN "baseRate";
 
 -- AlterTable DailyReport: per-room model
-ALTER TABLE "DailyReport" DROP COLUMN "occupancy",
-DROP COLUMN "supplies",
-ADD COLUMN "guestCount" INTEGER NOT NULL DEFAULT 1,
+-- Add new columns as nullable first
+ALTER TABLE "DailyReport" ADD COLUMN "guestCount" INTEGER DEFAULT 1,
 ADD COLUMN "guestName" TEXT,
-ADD COLUMN "occupancyStatus" "OccupancyStatus" NOT NULL,
-ADD COLUMN "roomId" TEXT NOT NULL;
+ADD COLUMN "occupancyStatus" "OccupancyStatus" DEFAULT 'VACANT',
+ADD COLUMN "roomId" TEXT;
+
+-- Link existing reports to the first room in their property
+UPDATE "DailyReport" dr
+SET "roomId" = (
+  SELECT r.id FROM "Room" r
+  JOIN "Area" a ON r."areaId" = a.id
+  WHERE a."propertyId" = dr."propertyId"
+  AND r."active" = true
+  LIMIT 1
+)
+WHERE dr."roomId" IS NULL;
+
+-- Drop old columns
+ALTER TABLE "DailyReport" DROP COLUMN "occupancy",
+DROP COLUMN "supplies";
+
+-- Set NOT NULL constraints
+ALTER TABLE "DailyReport" ALTER COLUMN "guestCount" SET NOT NULL,
+ALTER COLUMN "guestCount" SET DEFAULT 1,
+ALTER COLUMN "occupancyStatus" SET NOT NULL,
+ALTER COLUMN "roomId" SET NOT NULL;
 
 -- AlterTable MaintenanceIssue: add category, assignedTo
 ALTER TABLE "MaintenanceIssue" ADD COLUMN "assignedToId" TEXT,
@@ -76,14 +99,41 @@ ALTER COLUMN "priority" SET DEFAULT 'MEDIUM',
 ALTER COLUMN "status" SET DEFAULT 'REPORTED';
 
 -- AlterTable IncomeRecord: source, recordDate, propertyId, reference, verified
+-- Add new columns as nullable first
+ALTER TABLE "IncomeRecord" ADD COLUMN "propertyId" TEXT,
+ADD COLUMN "recordDate" TIMESTAMP(3),
+ADD COLUMN "reference" TEXT,
+ADD COLUMN "source" "IncomeSource" DEFAULT 'ACCOMMODATION',
+ADD COLUMN "verified" BOOLEAN DEFAULT false;
+
+-- Backfill propertyId from room→area→property chain
+UPDATE "IncomeRecord" ir
+SET "propertyId" = (
+  SELECT a."propertyId" FROM "Room" r
+  JOIN "Area" a ON r."areaId" = a.id
+  WHERE r.id = ir."roomId"
+  LIMIT 1
+)
+WHERE ir."propertyId" IS NULL;
+
+-- Backfill recordDate from createdAt
+UPDATE "IncomeRecord" SET "recordDate" = "createdAt" WHERE "recordDate" IS NULL;
+
+-- Backfill source from bookingSource (map old values)
+UPDATE "IncomeRecord" SET "source" = 'ACCOMMODATION' WHERE "source" IS NULL;
+
+-- Drop old columns
 ALTER TABLE "IncomeRecord" DROP COLUMN "bookingSource",
 DROP COLUMN "checkInDate",
-DROP COLUMN "checkOutDate",
-ADD COLUMN "propertyId" TEXT NOT NULL,
-ADD COLUMN "recordDate" TIMESTAMP(3) NOT NULL,
-ADD COLUMN "reference" TEXT,
-ADD COLUMN "source" "IncomeSource" NOT NULL DEFAULT 'ACCOMMODATION',
-ADD COLUMN "verified" BOOLEAN NOT NULL DEFAULT false;
+DROP COLUMN "checkOutDate";
+
+-- Set NOT NULL constraints
+ALTER TABLE "IncomeRecord" ALTER COLUMN "propertyId" SET NOT NULL,
+ALTER COLUMN "recordDate" SET NOT NULL,
+ALTER COLUMN "source" SET NOT NULL,
+ALTER COLUMN "source" SET DEFAULT 'ACCOMMODATION',
+ALTER COLUMN "verified" SET NOT NULL,
+ALTER COLUMN "verified" SET DEFAULT false;
 
 -- DropEnum
 DROP TYPE "BookingSource";
