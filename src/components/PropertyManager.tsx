@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Building, Plus, ChevronDown, ChevronUp, MapPin, BedDouble, Eye } from 'lucide-react'
+import { Building, Plus, ChevronDown, ChevronUp, MapPin, BedDouble, Eye, FileUp, X } from 'lucide-react'
 
 interface Room {
   id: string
@@ -53,6 +53,11 @@ export function PropertyManager({ initialProperties }: PropertyManagerProps) {
   const [editingPropertyId, setEditingPropertyId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editAddress, setEditAddress] = useState('')
+
+  const [importAreaId, setImportAreaId] = useState<string | null>(null)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: { row: number; message: string }[] } | null>(null)
 
   async function createProperty() {
     if (!newPropertyName.trim() || !newPropertyAddress.trim()) return
@@ -146,6 +151,45 @@ export function PropertyManager({ initialProperties }: PropertyManagerProps) {
     } finally {
       setCreatingRoom(false)
     }
+  }
+
+  async function importRooms() {
+    if (!importFile || !importAreaId) return
+    setImporting(true)
+    setImportResult(null)
+    try {
+      const formData = new FormData()
+      formData.append('file', importFile)
+      const res = await fetch('/api/settings/rooms/import', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setImportResult(data)
+        if (data.created > 0) {
+          const propRes = await fetch('/api/settings/properties')
+          if (propRes.ok) {
+            const props = await propRes.json()
+            setProperties(props.properties ?? props)
+          }
+        }
+      }
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  function openImport(areaId: string) {
+    setImportAreaId(areaId)
+    setImportFile(null)
+    setImportResult(null)
+  }
+
+  function closeImport() {
+    setImportAreaId(null)
+    setImportFile(null)
+    setImportResult(null)
   }
 
   return (
@@ -280,6 +324,13 @@ export function PropertyManager({ initialProperties }: PropertyManagerProps) {
                             ) : (
                               <p className="text-xs text-text-sub mt-1">No rooms</p>
                             )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openImport(area.id) }}
+                              className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
+                            >
+                              <FileUp className="h-3 w-3" />
+                              Import Rooms
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -367,6 +418,68 @@ export function PropertyManager({ initialProperties }: PropertyManagerProps) {
           </div>
         </Card>
       </div>
+
+      {importAreaId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-medium text-text-main">Import Rooms via CSV</h3>
+              <button onClick={closeImport} className="rounded p-1 text-text-sub hover:text-text-main">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-lg bg-surface p-3">
+              <p className="mb-1 text-xs font-medium text-text-sub">Expected CSV format:</p>
+              <code className="text-xs text-text-main">
+                name,type,dailyRate,areaId{'\n'}
+                Room 01,STUDIO,25000,{importAreaId}{'\n'}
+                Room 02,ONE_BEDROOM,35000,{importAreaId}
+              </code>
+              <p className="mt-1 text-[11px] text-text-sub">
+                Types: STUDIO, ONE_BEDROOM, TWO_BEDROOM, THREE_BEDROOM, PENTHOUSE
+              </p>
+            </div>
+
+            {!importResult ? (
+              <>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                  className="mb-4 w-full text-sm text-text-sub file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-primary/90"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={closeImport}>Cancel</Button>
+                  <Button size="sm" onClick={importRooms} disabled={!importFile || importing}>
+                    {importing ? 'Importing...' : 'Import'}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div>
+                <div className={`mb-3 rounded-lg p-3 ${importResult.errors.length > 0 ? 'bg-warning/10' : 'bg-success/10'}`}>
+                  <p className="text-sm font-medium text-text-main">
+                    {importResult.created} rooms created, {importResult.skipped} skipped
+                  </p>
+                </div>
+                {importResult.errors.length > 0 && (
+                  <div className="mb-3 max-h-40 overflow-y-auto rounded-lg border border-border bg-surface p-3">
+                    {importResult.errors.map((err, i) => (
+                      <p key={i} className="text-xs text-danger">
+                        Row {err.row}: {err.message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={closeImport}>Done</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

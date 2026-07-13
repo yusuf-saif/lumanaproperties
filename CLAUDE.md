@@ -4,10 +4,12 @@
 - Next.js 14 (App Router, TypeScript strict)
 - Tailwind CSS
 - Prisma ORM (PostgreSQL)
-- NextAuth.js v5 (Auth.js) — email/password
+- NextAuth.js v5 (Auth.js) — email/password + middleware
 - Lucide React — icons
 - React Hook Form + Zod — forms
 - Resend — email (guarded, only when API key set)
+- Recharts — dashboard charts
+- PapaParse — CSV import
 
 ## Design Tokens
 | Token     | Hex       | Usage                         |
@@ -26,10 +28,11 @@
 ## Rules
 1. Server components by default
 2. `'use client'` only for hooks/events/browser APIs
-3. No hardcoded hex — Tailwind tokens only
+3. No hardcoded hex — Tailwind tokens only (recharts config objects are exempt)
 4. No `transition: all`
 5. No `any` types
 6. `export const dynamic = 'force-dynamic'` on all dashboard pages
+7. `src/middleware.ts` handles auth (logged-in vs not) — role checks stay in page components
 
 ## Component Map
 | File                              | Client? | Purpose                                  |
@@ -56,6 +59,9 @@
 | components/RoomAvailabilityGrid.tsx | Yes   | Room availability grid with status cards |
 | components/UserManager.tsx         | Yes    | User invite + role/property management   |
 | components/layout/NotificationBell.tsx | Yes | Notification bell dropdown + mark read   |
+| components/charts/OccupancyChart.tsx | Yes   | 7-day occupancy trend line chart         |
+| components/charts/IncomeChart.tsx    | Yes    | 7-day revenue bar chart                  |
+| components/charts/MaintenanceStatusChart.tsx | Yes | Maintenance by status pie chart  |
 
 ## Lib Map
 | File                  | Purpose                                    |
@@ -105,6 +111,7 @@ User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteT
 | PATCH  | /api/notifications/[id]               | Mark single notification as read     |
 | POST   | /api/notifications/read-all           | Mark all user's notifications read   |
 | POST   | /api/maintenance/upload               | Upload images, return base64 data URLs |
+| POST   | /api/settings/rooms/import             | Bulk import rooms via CSV (SUPER_ADMIN) |
 
 ## Session Shape
 ```ts
@@ -238,9 +245,16 @@ session.user = {
 - [x] API: POST /api/maintenance/upload — validates JPEG/PNG, 2MB limit, returns base64 data URLs
 - [x] Maintenance detail page: photo styling updated (max-h-48 object-cover)
 
+### Phase 5 — Complete
+- [x] src/middleware.ts: NextAuth v5 middleware, protects all routes except auth pages and static files
+- [x] Simplified authorized callback in auth.ts — middleware handles redirects now
+- [x] Dashboard charts: 7-day occupancy line chart, 7-day revenue bar chart, maintenance status pie chart (recharts)
+- [x] OccupancyChart, IncomeChart, MaintenanceStatusChart client components
+- [x] Bulk room CSV import: /api/settings/rooms/import (SUPER_ADMIN only, papaparse, validation, bulk create)
+- [x] PropertyManager: Import Rooms button per area with modal, CSV upload, result display, tree refresh
+
 ### Remaining
-- [ ] Dashboard charts/analytics
-- [ ] Middleware for role-based route protection
 - [ ] Email templates for invite flow
-- [ ] CSV import for bulk data
 - [ ] Escalation alert if Critical issue unresolved > 24 hours (MAINTENANCE_OVERDUE)
+- [ ] Bulk income CSV import
+- [ ] Role-based middleware enforcement (currently auth-only, role checks in pages)
