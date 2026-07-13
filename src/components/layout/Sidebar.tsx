@@ -17,16 +17,16 @@ import {
 import { cn } from '@/lib/utils/cn'
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/properties', label: 'Properties', icon: Building2, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER'] },
-  { href: '/daily-reports', label: 'Daily Reports', icon: ClipboardList, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/submit', label: 'Daily Reports', icon: ClipboardList, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/income', label: 'Income', icon: DollarSign, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/maintenance', label: 'Maintenance', icon: Wrench, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/reports', label: 'Reports', icon: FileText, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
 ]
 
 const settingsItems = [
-  { href: '/settings', label: 'Settings', icon: Settings, roles: ['SUPER_ADMIN'] },
+  { href: '/settings/properties', label: 'Settings', icon: Settings, roles: ['SUPER_ADMIN'] },
 ]
 
 interface SidebarProps {
