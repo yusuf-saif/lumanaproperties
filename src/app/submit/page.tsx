@@ -16,7 +16,7 @@ export default async function SubmitReportPage() {
   let properties: {
     id: string
     name: string
-    rooms: { id: string; name: string; status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'BLOCKED' }[]
+    rooms: { id: string; name: string; status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'OUT_OF_SERVICE' }[]
   }[] = []
 
   try {

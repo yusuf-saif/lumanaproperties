@@ -10,7 +10,7 @@ interface Room {
   id: string
   name: string
   type: string
-  baseRate: number
+  dailyRate: number
   status: string
   active: boolean
 }
@@ -129,7 +129,7 @@ export function PropertyManager({ initialProperties }: PropertyManagerProps) {
           areaId: newRoomAreaId,
           name: newRoomName.trim(),
           type: newRoomType,
-          baseRate: parseFloat(newRoomRate),
+          dailyRate: parseFloat(newRoomRate),
         }),
       })
       if (res.ok) {
@@ -262,9 +262,9 @@ export function PropertyManager({ initialProperties }: PropertyManagerProps) {
                                       {room.name} ({room.type.replace('_', ' ')})
                                     </span>
                                     <div className="flex items-center gap-2">
-                                      <span>₦{room.baseRate.toLocaleString()}</span>
+                                      <span>₦{room.dailyRate.toLocaleString()}</span>
                                       <Badge variant={room.status === 'AVAILABLE' ? 'success' : room.status === 'OCCUPIED' ? 'info' : room.status === 'MAINTENANCE' ? 'warning' : 'default'}>
-                                        {room.status}
+                                        {room.status.replace('_', ' ')}
                                       </Badge>
                                     </div>
                                   </div>
@@ -348,7 +348,7 @@ export function PropertyManager({ initialProperties }: PropertyManagerProps) {
             </select>
             <input
               type="number"
-              placeholder="Base rate (₦)"
+              placeholder="Daily rate (₦)"
               value={newRoomRate}
               onChange={(e) => setNewRoomRate(e.target.value)}
               className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"

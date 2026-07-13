@@ -83,26 +83,27 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
 
     switch (resultType) {
       case 'occupancy':
-        headers = ['Date', 'Property', 'Total Rooms', 'Available', 'Occupied', 'Maintenance', 'Blocked']
+        headers = ['Date', 'Property', 'Room', 'Status', 'Guest', 'Guest Count']
         rows = (result as Array<Record<string, unknown>>).map((r) => [
-          String(r.date ?? ''),
+          String(r.date ?? '').split('T')[0],
           String(r.property ?? ''),
-          String(r.totalRooms ?? 0),
-          String(r.AVAILABLE ?? 0),
-          String(r.OCCUPIED ?? 0),
-          String(r.MAINTENANCE ?? 0),
-          String(r.BLOCKED ?? 0),
+          String(r.room ?? ''),
+          String(r.occupancyStatus ?? ''),
+          String(r.guestName ?? ''),
+          String(r.guestCount ?? 0),
         ])
         break
       case 'maintenance':
-        headers = ['Title', 'Priority', 'Status', 'Property', 'Room', 'Raised By', 'Resolved By', 'Created', 'Resolved', 'Hours']
+        headers = ['Title', 'Priority', 'Status', 'Category', 'Property', 'Room', 'Raised By', 'Assigned To', 'Resolved By', 'Created', 'Resolved', 'Hours']
         rows = (result as Array<Record<string, unknown>>).map((r) => [
           String(r.title ?? ''),
           String(r.priority ?? ''),
           String(r.status ?? ''),
+          String(r.category ?? ''),
           String(r.property ?? ''),
           String(r.room ?? ''),
           String(r.raisedBy ?? ''),
+          String(r.assignedTo ?? ''),
           String(r.resolvedBy ?? ''),
           String(r.createdAt ?? ''),
           String(r.resolvedAt ?? ''),
@@ -110,40 +111,42 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
         ])
         break
       case 'income':
-        headers = ['Property', 'Room', 'Amount', 'Payment', 'Source', 'Guest', 'Check-In', 'Check-Out', 'Recorded By', 'Date']
+        headers = ['Property', 'Room', 'Amount', 'Payment', 'Source', 'Guest', 'Date', 'Reference', 'Verified', 'Recorded By']
         rows = (result as Array<Record<string, unknown>>).map((r) => [
           String(r.property ?? ''),
           String(r.room ?? ''),
           String(r.amount ?? 0),
           String(r.paymentMethod ?? ''),
-          String(r.bookingSource ?? ''),
+          String(r.source ?? ''),
           String(r.guestName ?? ''),
-          String(r.checkInDate ?? ''),
-          String(r.checkOutDate ?? ''),
+          String(r.recordDate ?? ''),
+          String(r.reference ?? ''),
+          String(r.verified ?? false),
           String(r.recordedBy ?? ''),
-          String(r.createdAt ?? ''),
         ])
         break
       case 'guest':
-        headers = ['Guest', 'Property', 'Room', 'Check-In', 'Check-Out', 'Amount', 'Source']
+        headers = ['Guest', 'Property', 'Room', 'Date', 'Amount', 'Source']
         rows = (result as Array<Record<string, unknown>>).map((r) => [
           String(r.guestName ?? ''),
           String(r.property ?? ''),
           String(r.room ?? ''),
-          String(r.checkInDate ?? ''),
-          String(r.checkOutDate ?? ''),
+          String(r.recordDate ?? ''),
           String(r.amount ?? 0),
-          String(r.bookingSource ?? ''),
+          String(r.source ?? ''),
         ])
         break
       case 'daily-ops':
-        headers = ['Date', 'Property', 'Submitted By', 'Notes', 'Created']
+        headers = ['Date', 'Property', 'Room', 'Status', 'Guest', 'Guest Count', 'Submitted By', 'Notes']
         rows = (result as Array<Record<string, unknown>>).map((r) => [
-          String(r.date ?? ''),
+          String(r.date ?? '').split('T')[0],
           String(r.property ?? ''),
+          String(r.room ?? ''),
+          String(r.occupancyStatus ?? ''),
+          String(r.guestName ?? ''),
+          String(r.guestCount ?? 0),
           String(r.submittedBy ?? ''),
           String(r.notes ?? ''),
-          String(r.createdAt ?? ''),
         ])
         break
     }
@@ -281,11 +284,10 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                     <>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Date</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Property</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Total</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Available</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Occupied</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Maintenance</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Blocked</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Room</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Status</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Guest</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Count</th>
                     </>
                   )}
                   {resultType === 'income' && (
@@ -304,6 +306,7 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Title</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Priority</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Status</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Category</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Property</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Room</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Raised By</th>
@@ -315,8 +318,7 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Guest</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Property</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Room</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Check-In</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Check-Out</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Date</th>
                       <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Amount</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Source</th>
                     </>
@@ -325,8 +327,10 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                     <>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Date</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Property</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Room</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Status</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Guest</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Submitted By</th>
-                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Notes</th>
                     </>
                   )}
                 </tr>
@@ -338,11 +342,14 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                       <>
                         <td className="px-4 py-3 text-sm">{String(row.date ?? '').split('T')[0]}</td>
                         <td className="px-4 py-3 text-sm font-medium">{String(row.property ?? '')}</td>
-                        <td className="px-4 py-3 text-sm text-right">{String(row.totalRooms ?? 0)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-success">{String(row.AVAILABLE ?? 0)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-primary">{String(row.OCCUPIED ?? 0)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-warning">{String(row.MAINTENANCE ?? 0)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-danger">{String(row.BLOCKED ?? 0)}</td>
+                        <td className="px-4 py-3 text-sm">{String(row.room ?? '')}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <Badge variant={String(row.occupancyStatus) === 'OCCUPIED' ? 'info' : String(row.occupancyStatus) === 'VACANT' ? 'success' : 'warning'}>
+                            {formatEnum(String(row.occupancyStatus ?? ''))}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{String(row.guestName ?? '—')}</td>
+                        <td className="px-4 py-3 text-sm text-right">{String(row.guestCount ?? 0)}</td>
                       </>
                     )}
                     {resultType === 'income' && (
@@ -351,24 +358,25 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                         <td className="px-4 py-3 text-sm">{String(row.room ?? '')}</td>
                         <td className="px-4 py-3 text-sm text-right">{formatCurrency(Number(row.amount ?? 0))}</td>
                         <td className="px-4 py-3 text-sm"><Badge variant="default">{formatEnum(String(row.paymentMethod ?? ''))}</Badge></td>
-                        <td className="px-4 py-3 text-sm"><Badge variant="info">{formatEnum(String(row.bookingSource ?? ''))}</Badge></td>
+                        <td className="px-4 py-3 text-sm"><Badge variant="info">{formatEnum(String(row.source ?? ''))}</Badge></td>
                         <td className="px-4 py-3 text-sm">{String(row.guestName ?? '—')}</td>
-                        <td className="px-4 py-3 text-sm">{String(row.createdAt ?? '').split('T')[0]}</td>
+                        <td className="px-4 py-3 text-sm">{String(row.recordDate ?? '').split('T')[0]}</td>
                       </>
                     )}
                     {resultType === 'maintenance' && (
                       <>
                         <td className="px-4 py-3 text-sm font-medium">{String(row.title ?? '')}</td>
                         <td className="px-4 py-3 text-sm">
-                          <Badge variant={String(row.priority) === 'URGENT' ? 'danger' : String(row.priority) === 'HIGH' ? 'warning' : 'default'}>
+                          <Badge variant={String(row.priority) === 'CRITICAL' ? 'danger' : String(row.priority) === 'HIGH' ? 'warning' : String(row.priority) === 'MEDIUM' ? 'info' : 'default'}>
                             {formatEnum(String(row.priority ?? ''))}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          <Badge variant={String(row.status) === 'RESOLVED' ? 'success' : String(row.status) === 'IN_PROGRESS' ? 'info' : 'warning'}>
+                          <Badge variant={String(row.status) === 'RESOLVED' ? 'success' : String(row.status) === 'IN_PROGRESS' ? 'warning' : String(row.status) === 'CLOSED' ? 'default' : 'info'}>
                             {formatEnum(String(row.status ?? ''))}
                           </Badge>
                         </td>
+                        <td className="px-4 py-3 text-sm">{formatEnum(String(row.category ?? ''))}</td>
                         <td className="px-4 py-3 text-sm">{String(row.property ?? '')}</td>
                         <td className="px-4 py-3 text-sm">{String(row.room ?? '')}</td>
                         <td className="px-4 py-3 text-sm">{String(row.raisedBy ?? '')}</td>
@@ -380,18 +388,23 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                         <td className="px-4 py-3 text-sm font-medium">{String(row.guestName ?? '')}</td>
                         <td className="px-4 py-3 text-sm">{String(row.property ?? '')}</td>
                         <td className="px-4 py-3 text-sm">{String(row.room ?? '')}</td>
-                        <td className="px-4 py-3 text-sm">{String(row.checkInDate ?? '')}</td>
-                        <td className="px-4 py-3 text-sm">{String(row.checkOutDate ?? '')}</td>
+                        <td className="px-4 py-3 text-sm">{String(row.recordDate ?? '').split('T')[0]}</td>
                         <td className="px-4 py-3 text-sm text-right">{formatCurrency(Number(row.amount ?? 0))}</td>
-                        <td className="px-4 py-3 text-sm"><Badge variant="info">{formatEnum(String(row.bookingSource ?? ''))}</Badge></td>
+                        <td className="px-4 py-3 text-sm"><Badge variant="info">{formatEnum(String(row.source ?? ''))}</Badge></td>
                       </>
                     )}
                     {resultType === 'daily-ops' && (
                       <>
                         <td className="px-4 py-3 text-sm">{String(row.date ?? '').split('T')[0]}</td>
                         <td className="px-4 py-3 text-sm font-medium">{String(row.property ?? '')}</td>
-                        <td className="px-4 py-3 text-sm">{String(row.submittedBy ?? '')}</td>
-                        <td className="px-4 py-3 text-sm text-text-sub truncate max-w-xs">{String(row.notes ?? '—')}</td>
+                        <td className="px-4 py-3 text-sm">{String(row.room ?? '')}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <Badge variant={String(row.occupancyStatus) === 'OCCUPIED' ? 'info' : 'success'}>
+                            {formatEnum(String(row.occupancyStatus ?? ''))}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{String(row.guestName ?? '—')}</td>
+                        <td className="px-4 py-3 text-sm text-text-sub">{String(row.submittedBy ?? '')}</td>
                       </>
                     )}
                   </tr>

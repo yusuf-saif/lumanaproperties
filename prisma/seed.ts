@@ -43,10 +43,10 @@ async function main() {
   })
 
   const rooms = [
-    { id: 'seed-room-1', name: 'Room 01', type: RoomType.STUDIO, baseRate: 25000 },
-    { id: 'seed-room-2', name: 'Room 02', type: RoomType.ONE_BEDROOM, baseRate: 35000 },
-    { id: 'seed-room-3', name: 'Room 03', type: RoomType.ONE_BEDROOM, baseRate: 35000 },
-    { id: 'seed-room-4', name: 'Room 04', type: RoomType.TWO_BEDROOM, baseRate: 55000 },
+    { id: 'seed-room-1', name: 'Room 01', type: RoomType.STUDIO, dailyRate: 25000 },
+    { id: 'seed-room-2', name: 'Room 02', type: RoomType.ONE_BEDROOM, dailyRate: 35000 },
+    { id: 'seed-room-3', name: 'Room 03', type: RoomType.ONE_BEDROOM, dailyRate: 35000 },
+    { id: 'seed-room-4', name: 'Room 04', type: RoomType.TWO_BEDROOM, dailyRate: 55000 },
   ]
   for (const room of rooms) {
     await prisma.room.upsert({

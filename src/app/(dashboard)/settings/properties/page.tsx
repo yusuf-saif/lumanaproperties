@@ -40,7 +40,7 @@ export default async function PropertiesPage() {
         id: r.id,
         name: r.name,
         type: r.type,
-        baseRate: r.baseRate,
+        dailyRate: r.dailyRate,
         status: r.status,
         active: r.active,
       })),

@@ -6,8 +6,8 @@ import { prisma } from '@/lib/prisma'
 const patchRoomSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   type: z.enum(['STUDIO', 'ONE_BEDROOM', 'TWO_BEDROOM', 'THREE_BEDROOM', 'PENTHOUSE']).optional(),
-  baseRate: z.number().min(0).optional(),
-  status: z.enum(['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'BLOCKED']).optional(),
+  dailyRate: z.number().min(0).optional(),
+  status: z.enum(['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'OUT_OF_SERVICE']).optional(),
   active: z.boolean().optional(),
 })
 

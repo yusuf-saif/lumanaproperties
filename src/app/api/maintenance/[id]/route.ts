@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 const patchSchema = z.object({
-  status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED']),
+  status: z.enum(['REPORTED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']),
   resolutionNotes: z.string().optional(),
 })
 
@@ -47,13 +47,13 @@ export async function PATCH(
     }
 
     const updateData: {
-      status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
+      status: 'REPORTED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
       resolvedById?: string
       resolvedAt?: Date
       resolutionNotes?: string
     } = { status }
 
-    if (status === 'RESOLVED') {
+    if (status === 'RESOLVED' || status === 'CLOSED') {
       updateData.resolvedById = session.user.id
       updateData.resolvedAt = new Date()
       updateData.resolutionNotes = resolutionNotes || undefined

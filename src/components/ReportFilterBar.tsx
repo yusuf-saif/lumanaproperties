@@ -6,15 +6,17 @@ import { Badge } from '@/components/ui/Badge'
 import StatCard from '@/components/ui/StatCard'
 import { Button } from '@/components/ui/Button'
 import { formatDateTime, formatEnum } from '@/lib/utils/format'
-import { FileText, AlertTriangle, CheckCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { FileText, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface DailyReport {
   id: string
   reportDate: string
   createdAt: string
   notes: string | null
-  occupancy: unknown
-  supplies: unknown
+  occupancyStatus: string
+  guestName: string | null
+  guestCount: number
+  room: { id: string; name: string }
   property: { id: string; name: string }
   submittedBy: { id: string; name: string }
 }
@@ -27,16 +29,14 @@ interface ReportFilterBarProps {
 
 export function ReportFilterBar({ reports, properties, missingReports }: ReportFilterBarProps) {
   const [propertyFilter, setPropertyFilter] = useState<string>('ALL')
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     return reports.filter((r) => {
       if (propertyFilter !== 'ALL' && r.property.id !== propertyFilter) return false
-      if (statusFilter === 'MISSING') return false
       return true
     })
-  }, [reports, propertyFilter, statusFilter])
+  }, [reports, propertyFilter])
 
   const completed = reports.length
   const missing = missingReports.length
@@ -62,17 +62,6 @@ export function ReportFilterBar({ reports, properties, missingReports }: ReportF
               {properties.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-text-sub">Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="ALL">All Reports</option>
-              <option value="SUBMITTED">Submitted Only</option>
             </select>
           </div>
         </div>
@@ -114,13 +103,6 @@ export function ReportFilterBar({ reports, properties, missingReports }: ReportF
           ) : (
             filtered.map((report) => {
               const isExpanded = expandedId === report.id
-              const occupancy = Array.isArray(report.occupancy)
-                ? (report.occupancy as Array<{ roomId: string; status: string; guestName?: string }>)
-                : []
-              const supplies = Array.isArray(report.supplies)
-                ? (report.supplies as Array<{ name: string; quantity: number }>)
-                : []
-              const occupied = occupancy.filter((o) => o.status === 'OCCUPIED').length
 
               return (
                 <div key={report.id}>
@@ -130,13 +112,15 @@ export function ReportFilterBar({ reports, properties, missingReports }: ReportF
                   >
                     <div className="flex items-center gap-4">
                       <div>
-                        <p className="text-sm font-medium">{report.property.name}</p>
-                        <p className="text-xs text-text-sub">{report.reportDate}</p>
+                        <p className="text-sm font-medium">{report.room.name}</p>
+                        <p className="text-xs text-text-sub">{report.property.name} — {report.reportDate}</p>
                       </div>
-                      <Badge variant="success">Submitted</Badge>
-                      <span className="text-xs text-text-sub">
-                        {occupied}/{occupancy.length} occupied
-                      </span>
+                      <Badge variant={report.occupancyStatus === 'OCCUPIED' ? 'info' : report.occupancyStatus === 'VACANT' ? 'success' : 'warning'}>
+                        {formatEnum(report.occupancyStatus)}
+                      </Badge>
+                      {report.guestName && (
+                        <span className="text-xs text-text-sub">{report.guestName} ({report.guestCount})</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-text-sub">{report.submittedBy.name}</span>
@@ -149,30 +133,24 @@ export function ReportFilterBar({ reports, properties, missingReports }: ReportF
                   </div>
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-3 bg-surface">
-                      <div>
-                        <p className="text-xs font-medium text-text-sub mb-1">Occupancy</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'BLOCKED'].map((status) => {
-                            const count = occupancy.filter((o) => o.status === status).length
-                            return (
-                              <div key={status} className="bg-white rounded-lg p-2 border border-border">
-                                <p className="text-xs text-text-sub">{formatEnum(status)}</p>
-                                <p className="text-lg font-semibold">{count}</p>
-                              </div>
-                            )
-                          })}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="bg-white rounded-lg p-2 border border-border">
+                          <p className="text-xs text-text-sub">Status</p>
+                          <p className="text-sm font-semibold">{formatEnum(report.occupancyStatus)}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-2 border border-border">
+                          <p className="text-xs text-text-sub">Guest</p>
+                          <p className="text-sm font-semibold">{report.guestName ?? '—'}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-2 border border-border">
+                          <p className="text-xs text-text-sub">Guest Count</p>
+                          <p className="text-sm font-semibold">{report.guestCount}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-2 border border-border">
+                          <p className="text-xs text-text-sub">Room</p>
+                          <p className="text-sm font-semibold">{report.room.name}</p>
                         </div>
                       </div>
-                      {supplies.length > 0 && (
-                        <div>
-                          <p className="text-xs font-medium text-text-sub mb-1">Supplies</p>
-                          <div className="flex flex-wrap gap-2">
-                            {supplies.map((s, i) => (
-                              <Badge key={i} variant="default">{s.name}: {s.quantity}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                       {report.notes && (
                         <div>
                           <p className="text-xs font-medium text-text-sub mb-1">Notes</p>

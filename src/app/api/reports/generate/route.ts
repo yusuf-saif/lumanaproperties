@@ -49,29 +49,21 @@ export async function POST(request: Request) {
             ...propertyFilter,
             reportDate: { gte: fromDate, lte: toDate },
           },
-          include: { property: { select: { name: true } } },
+          include: {
+            property: { select: { name: true } },
+            room: { select: { name: true } },
+          },
           orderBy: { reportDate: 'asc' },
         })
 
-        data = reports.map((r) => {
-          const occupancy = r.occupancy as Array<{
-            roomId: string
-            status: string
-            guestName?: string
-          }>
-          const statusCounts = { AVAILABLE: 0, OCCUPIED: 0, MAINTENANCE: 0, BLOCKED: 0 }
-          occupancy.forEach((entry) => {
-            if (entry.status in statusCounts) {
-              statusCounts[entry.status as keyof typeof statusCounts]++
-            }
-          })
-          return {
-            date: r.reportDate,
-            property: r.property.name,
-            totalRooms: occupancy.length,
-            ...statusCounts,
-          }
-        })
+        data = reports.map((r) => ({
+          date: r.reportDate,
+          property: r.property.name,
+          room: r.room.name,
+          occupancyStatus: r.occupancyStatus,
+          guestName: r.guestName,
+          guestCount: r.guestCount,
+        }))
         break
       }
 
@@ -85,6 +77,7 @@ export async function POST(request: Request) {
             property: { select: { name: true } },
             room: { select: { name: true } },
             raisedBy: { select: { name: true } },
+            assignedTo: { select: { name: true } },
             resolvedBy: { select: { name: true } },
           },
           orderBy: { createdAt: 'desc' },
@@ -95,9 +88,11 @@ export async function POST(request: Request) {
           title: i.title,
           priority: i.priority,
           status: i.status,
+          category: i.category,
           property: i.property.name,
           room: i.room.name,
           raisedBy: i.raisedBy.name,
+          assignedTo: i.assignedTo?.name ?? null,
           resolvedBy: i.resolvedBy?.name ?? null,
           createdAt: i.createdAt,
           resolvedAt: i.resolvedAt,
@@ -112,37 +107,28 @@ export async function POST(request: Request) {
       case 'income': {
         const records = await prisma.incomeRecord.findMany({
           where: {
-            room: {
-              area: {
-                propertyId:
-                  propertyIds.length > 0 ? { in: propertyIds } : undefined,
-              },
-            },
-            createdAt: { gte: fromDate, lte: toDate },
+            ...propertyFilter,
+            recordDate: { gte: fromDate, lte: toDate },
           },
           include: {
-            room: {
-              include: {
-                area: {
-                  include: { property: { select: { name: true } } },
-                },
-              },
-            },
+            room: { select: { name: true } },
+            property: { select: { name: true } },
             recordedBy: { select: { name: true } },
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { recordDate: 'desc' },
         })
 
         data = records.map((r) => ({
           id: r.id,
-          property: r.room.area.property.name,
+          property: r.property.name,
           room: r.room.name,
           amount: r.amount,
           paymentMethod: r.paymentMethod,
-          bookingSource: r.bookingSource,
+          source: r.source,
           guestName: r.guestName,
-          checkInDate: r.checkInDate,
-          checkOutDate: r.checkOutDate,
+          recordDate: r.recordDate,
+          reference: r.reference,
+          verified: r.verified,
           recordedBy: r.recordedBy.name,
           createdAt: r.createdAt,
         }))
@@ -152,35 +138,24 @@ export async function POST(request: Request) {
       case 'guest': {
         const records = await prisma.incomeRecord.findMany({
           where: {
-            room: {
-              area: {
-                propertyId:
-                  propertyIds.length > 0 ? { in: propertyIds } : undefined,
-              },
-            },
-            createdAt: { gte: fromDate, lte: toDate },
+            ...propertyFilter,
+            recordDate: { gte: fromDate, lte: toDate },
             guestName: { not: null },
           },
           include: {
-            room: {
-              include: {
-                area: {
-                  include: { property: { select: { name: true } } },
-                },
-              },
-            },
+            room: { select: { name: true } },
+            property: { select: { name: true } },
           },
-          orderBy: { checkInDate: 'desc' },
+          orderBy: { recordDate: 'desc' },
         })
 
         data = records.map((r) => ({
           guestName: r.guestName,
-          property: r.room.area.property.name,
+          property: r.property.name,
           room: r.room.name,
-          checkInDate: r.checkInDate,
-          checkOutDate: r.checkOutDate,
+          recordDate: r.recordDate,
           amount: r.amount,
-          bookingSource: r.bookingSource,
+          source: r.source,
         }))
         break
       }
@@ -193,6 +168,7 @@ export async function POST(request: Request) {
           },
           include: {
             property: { select: { name: true } },
+            room: { select: { name: true } },
             submittedBy: { select: { name: true } },
           },
           orderBy: { reportDate: 'desc' },
@@ -202,10 +178,12 @@ export async function POST(request: Request) {
           id: r.id,
           date: r.reportDate,
           property: r.property.name,
+          room: r.room.name,
+          occupancyStatus: r.occupancyStatus,
+          guestName: r.guestName,
+          guestCount: r.guestCount,
           submittedBy: r.submittedBy.name,
           createdAt: r.createdAt,
-          occupancy: r.occupancy,
-          supplies: r.supplies,
           notes: r.notes,
         }))
         break

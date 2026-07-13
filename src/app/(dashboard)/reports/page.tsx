@@ -22,6 +22,7 @@ export default async function ReportsPage() {
     where: propertyFilter,
     include: {
       property: { select: { id: true, name: true } },
+      room: { select: { id: true, name: true } },
       submittedBy: { select: { id: true, name: true } },
     },
     orderBy: { reportDate: 'desc' },
@@ -44,14 +45,22 @@ export default async function ReportsPage() {
       ...propertyFilter,
       reportDate: { gte: sevenDaysAgo },
     },
-    select: { reportDate: true, propertyId: true },
+    select: { reportDate: true, roomId: true },
   })
 
   const missingReports: Array<{ date: string; propertyName: string; propertyId: string }> = []
 
   for (const property of properties) {
-    const propertyReportDates = recentReports
-      .filter((r) => r.propertyId === property.id)
+    const propertyRooms = await prisma.room.findMany({
+      where: {
+        area: { propertyId: property.id },
+        active: true,
+      },
+      select: { id: true },
+    })
+
+    const propertyReportRoomDates = recentReports
+      .filter((r) => propertyRooms.some((room) => room.id === r.roomId))
       .map((r) => r.reportDate.toISOString().split('T')[0])
 
     for (let i = 0; i < 7; i++) {
@@ -59,7 +68,7 @@ export default async function ReportsPage() {
       d.setDate(d.getDate() - i)
       const dateStr = d.toISOString().split('T')[0]
 
-      if (!propertyReportDates.includes(dateStr)) {
+      if (!propertyReportRoomDates.includes(dateStr)) {
         missingReports.push({ date: dateStr, propertyName: property.name, propertyId: property.id })
       }
     }
@@ -72,8 +81,10 @@ export default async function ReportsPage() {
     reportDate: r.reportDate.toISOString().split('T')[0],
     createdAt: r.createdAt.toISOString(),
     notes: r.notes,
-    occupancy: r.occupancy,
-    supplies: r.supplies,
+    occupancyStatus: r.occupancyStatus,
+    guestName: r.guestName,
+    guestCount: r.guestCount,
+    room: r.room,
     property: r.property,
     submittedBy: r.submittedBy,
   }))

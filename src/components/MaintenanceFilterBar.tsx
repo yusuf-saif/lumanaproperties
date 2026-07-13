@@ -25,16 +25,17 @@ interface MaintenanceFilterBarProps {
 }
 
 const priorityVariant: Record<MaintenancePriority, 'danger' | 'warning' | 'info' | 'default'> = {
-  URGENT: 'danger',
+  CRITICAL: 'danger',
   HIGH: 'warning',
-  NORMAL: 'info',
+  MEDIUM: 'info',
   LOW: 'default',
 }
 
-const statusVariant: Record<MaintenanceStatus, 'danger' | 'warning' | 'success'> = {
-  OPEN: 'danger',
+const statusVariant: Record<MaintenanceStatus, 'danger' | 'warning' | 'success' | 'default'> = {
+  REPORTED: 'default',
   IN_PROGRESS: 'warning',
   RESOLVED: 'success',
+  CLOSED: 'default',
 }
 
 export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarProps) {
@@ -42,7 +43,7 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL')
   const [propertyFilter, setPropertyFilter] = useState<string>('ALL')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
-  const [newStatus, setNewStatus] = useState<MaintenanceStatus>('OPEN')
+  const [newStatus, setNewStatus] = useState<MaintenanceStatus>('REPORTED')
   const [resolutionNotes, setResolutionNotes] = useState('')
   const [updateError, setUpdateError] = useState('')
 
@@ -61,7 +62,7 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
   }, [issues, statusFilter, priorityFilter, propertyFilter])
 
   const counts = useMemo(() => {
-    const c = { OPEN: 0, IN_PROGRESS: 0, RESOLVED: 0 }
+    const c = { REPORTED: 0, IN_PROGRESS: 0, RESOLVED: 0, CLOSED: 0 }
     issues.forEach((i) => c[i.status]++)
     return c
   }, [issues])
@@ -74,7 +75,7 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: newStatus,
-          resolutionNotes: newStatus === 'RESOLVED' ? resolutionNotes : undefined,
+          resolutionNotes: (newStatus === 'RESOLVED' || newStatus === 'CLOSED') ? resolutionNotes : undefined,
         }),
       })
 
@@ -94,11 +95,10 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
 
   return (
     <div className="space-y-6">
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-border bg-card p-4 text-center">
-          <p className="text-2xl font-bold text-danger">{counts.OPEN}</p>
-          <p className="text-sm text-text-sub">Open</p>
+          <p className="text-2xl font-bold text-text-sub">{counts.REPORTED}</p>
+          <p className="text-sm text-text-sub">Reported</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4 text-center">
           <p className="text-2xl font-bold text-warning">{counts.IN_PROGRESS}</p>
@@ -108,9 +108,12 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
           <p className="text-2xl font-bold text-success">{counts.RESOLVED}</p>
           <p className="text-sm text-text-sub">Resolved</p>
         </div>
+        <div className="rounded-lg border border-border bg-card p-4 text-center">
+          <p className="text-2xl font-bold text-text-sub">{counts.CLOSED}</p>
+          <p className="text-sm text-text-sub">Closed</p>
+        </div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <select
           value={statusFilter}
@@ -118,9 +121,10 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
           className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         >
           <option value="ALL">All Statuses</option>
-          <option value="OPEN">Open</option>
+          <option value="REPORTED">Reported</option>
           <option value="IN_PROGRESS">In Progress</option>
           <option value="RESOLVED">Resolved</option>
+          <option value="CLOSED">Closed</option>
         </select>
 
         <select
@@ -129,9 +133,9 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
           className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         >
           <option value="ALL">All Priorities</option>
-          <option value="URGENT">Urgent</option>
+          <option value="CRITICAL">Critical</option>
           <option value="HIGH">High</option>
-          <option value="NORMAL">Normal</option>
+          <option value="MEDIUM">Medium</option>
           <option value="LOW">Low</option>
         </select>
 
@@ -155,7 +159,6 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
         </div>
       )}
 
-      {/* Issues Table */}
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-border bg-surface">
@@ -200,7 +203,7 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
                     {formatDateTime(issue.createdAt)}
                   </td>
                   <td className="px-4 py-3">
-                    {issue.status !== 'RESOLVED' && (
+                    {issue.status !== 'RESOLVED' && issue.status !== 'CLOSED' && (
                       <>
                         {updatingId === issue.id ? (
                           <div className="space-y-2">
@@ -209,11 +212,12 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
                               onChange={(e) => setNewStatus(e.target.value as MaintenanceStatus)}
                               className="rounded border border-border px-2 py-1 text-xs text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                             >
-                              <option value="OPEN">Open</option>
+                              <option value="REPORTED">Reported</option>
                               <option value="IN_PROGRESS">In Progress</option>
                               <option value="RESOLVED">Resolved</option>
+                              <option value="CLOSED">Closed</option>
                             </select>
-                            {newStatus === 'RESOLVED' && (
+                            {(newStatus === 'RESOLVED' || newStatus === 'CLOSED') && (
                               <textarea
                                 value={resolutionNotes}
                                 onChange={(e) => setResolutionNotes(e.target.value)}
@@ -247,7 +251,7 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
                             variant="ghost"
                             onClick={() => {
                               setUpdatingId(issue.id)
-                              setNewStatus(issue.status === 'OPEN' ? 'IN_PROGRESS' : 'RESOLVED')
+                              setNewStatus(issue.status === 'REPORTED' ? 'IN_PROGRESS' : 'RESOLVED')
                             }}
                           >
                             Update Status

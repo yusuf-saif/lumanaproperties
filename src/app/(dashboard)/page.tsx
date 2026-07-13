@@ -12,7 +12,7 @@ async function getDashboardData() {
       totalRooms: 0,
       availableRooms: 0,
       openMaintenance: 0,
-      urgentMaintenance: 0,
+      criticalMaintenance: 0,
       todayIncome: 0,
       missingReports: 0,
     }
@@ -25,18 +25,18 @@ async function getDashboardData() {
     totalRooms,
     availableRooms,
     openMaintenance,
-    urgentMaintenance,
+    criticalMaintenance,
     todayIncomeAgg,
     totalProperties,
     reportedToday,
   ] = await Promise.all([
     prisma.room.count({ where: { active: true } }),
     prisma.room.count({ where: { active: true, status: 'AVAILABLE' } }),
-    prisma.maintenanceIssue.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
-    prisma.maintenanceIssue.count({ where: { status: 'OPEN', priority: 'URGENT' } }),
+    prisma.maintenanceIssue.count({ where: { status: { in: ['REPORTED', 'IN_PROGRESS'] } } }),
+    prisma.maintenanceIssue.count({ where: { status: 'REPORTED', priority: 'CRITICAL' } }),
     prisma.incomeRecord.aggregate({
       _sum: { amount: true },
-      where: { createdAt: { gte: today } },
+      where: { recordDate: { gte: today } },
     }),
     prisma.property.count({ where: { active: true } }),
     prisma.dailyReport.count({
@@ -48,7 +48,7 @@ async function getDashboardData() {
     totalRooms,
     availableRooms,
     openMaintenance,
-    urgentMaintenance,
+    criticalMaintenance,
     todayIncome: todayIncomeAgg._sum.amount ?? 0,
     missingReports: totalProperties - reportedToday,
   }
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
           <StatCard
             title="Open Maintenance"
             value={data.openMaintenance}
-            subtitle={`${data.urgentMaintenance} urgent`}
+            subtitle={`${data.criticalMaintenance} critical`}
             icon={<Wrench size={24} />}
             color="warning"
           />

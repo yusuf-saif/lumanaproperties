@@ -26,33 +26,52 @@ enum RoomStatus {
   AVAILABLE
   OCCUPIED
   MAINTENANCE
-  BLOCKED
+  OUT_OF_SERVICE
+}
+
+enum OccupancyStatus {
+  OCCUPIED
+  VACANT
+  CHECKOUT
+  NO_SHOW
 }
 
 enum MaintenancePriority {
-  URGENT
-  HIGH
-  NORMAL
   LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum MaintenanceStatus {
-  OPEN
+  REPORTED
   IN_PROGRESS
   RESOLVED
+  CLOSED
+}
+
+enum MaintenanceCategory {
+  ELECTRICAL
+  PLUMBING
+  HVAC
+  FURNITURE
+  APPLIANCE
+  OTHER
 }
 
 enum PaymentMethod {
   CASH
-  BANK_TRANSFER
   CARD
+  TRANSFER
+  POS
   ONLINE
 }
 
-enum BookingSource {
-  DIRECT
-  AIRBNB
-  BOOKING_COM
+enum IncomeSource {
+  ACCOMMODATION
+  MINIBAR
+  LAUNDRY
+  SERVICE_CHARGE
   OTHER
 }
 
@@ -63,12 +82,15 @@ model User {
   password             String
   role                 Role               @default(STAFF)
   active               Boolean            @default(true)
+  phone                String?
+  lastLoginAt          DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   propertyUsers        PropertyUser[]
   reports              DailyReport[]
   maintenanceRaised    MaintenanceIssue[] @relation("RaisedBy")
   maintenanceResolved  MaintenanceIssue[] @relation("ResolvedBy")
+  maintenanceAssigned  MaintenanceIssue[] @relation("AssignedTo")
   incomeRecords        IncomeRecord[]
 }
 
@@ -82,6 +104,7 @@ model Property {
   propertyUsers PropertyUser[]
   reports       DailyReport[]
   maintenance   MaintenanceIssue[]
+  incomeRecords IncomeRecord[]
 }
 
 model PropertyUser {
@@ -107,41 +130,48 @@ model Room {
   id              String           @id @default(cuid())
   name            String
   type            RoomType
-  baseRate        Float
+  dailyRate       Float
   status          RoomStatus       @default(AVAILABLE)
+  amenities       Json?
   areaId          String
   area            Area             @relation(fields: [areaId], references: [id])
   active          Boolean          @default(true)
   statusUpdatedAt DateTime         @default(now())
+  reports         DailyReport[]
   maintenance     MaintenanceIssue[]
   incomeRecords   IncomeRecord[]
 }
 
 model DailyReport {
-  id           String   @id @default(cuid())
-  reportDate   DateTime
-  propertyId   String
-  submittedById String
-  property     Property @relation(fields: [propertyId], references: [id])
-  submittedBy  User     @relation(fields: [submittedById], references: [id])
-  occupancy    Json
-  supplies     Json
-  notes        String?
-  createdAt    DateTime @default(now())
+  id              String          @id @default(cuid())
+  reportDate      DateTime
+  propertyId      String
+  roomId          String
+  occupancyStatus OccupancyStatus
+  guestName       String?
+  guestCount      Int             @default(1)
+  notes           String?
+  submittedById   String
+  createdAt       DateTime        @default(now())
+  property        Property        @relation(fields: [propertyId], references: [id])
+  room            Room            @relation(fields: [roomId], references: [id])
+  submittedBy     User            @relation(fields: [submittedById], references: [id])
 
-  @@unique([propertyId, reportDate])
+  @@unique([roomId, reportDate])
 }
 
 model MaintenanceIssue {
   id              String              @id @default(cuid())
   title           String
   description     String
-  priority        MaintenancePriority @default(NORMAL)
-  status          MaintenanceStatus   @default(OPEN)
+  priority        MaintenancePriority @default(MEDIUM)
+  status          MaintenanceStatus   @default(REPORTED)
+  category        MaintenanceCategory @default(OTHER)
   photos          String[]
   propertyId      String
   roomId          String
   raisedById      String
+  assignedToId    String?
   resolvedById    String?
   resolvedAt      DateTime?
   resolutionNotes String?
@@ -150,31 +180,35 @@ model MaintenanceIssue {
   property        Property            @relation(fields: [propertyId], references: [id])
   room            Room                @relation(fields: [roomId], references: [id])
   raisedBy        User                @relation("RaisedBy", fields: [raisedById], references: [id])
+  assignedTo      User?               @relation("AssignedTo", fields: [assignedToId], references: [id])
   resolvedBy      User?               @relation("ResolvedBy", fields: [resolvedById], references: [id])
 }
 
 model InviteToken {
-  id        String   @id @default(cuid())
-  email     String
-  role      Role
-  token     String   @unique @default(cuid())
-  used      Boolean  @default(false)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  email       String
+  role        Role
+  token       String   @unique @default(cuid())
+  used        Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
 }
 
 model IncomeRecord {
   id            String        @id @default(cuid())
   roomId        String
+  propertyId    String
   recordedById  String
   amount        Float
+  source        IncomeSource  @default(ACCOMMODATION)
   paymentMethod PaymentMethod
-  bookingSource BookingSource
-  checkInDate   DateTime
-  checkOutDate  DateTime
+  recordDate    DateTime
   guestName     String?
+  reference     String?
+  verified      Boolean       @default(false)
   notes         String?
   createdAt     DateTime      @default(now())
   room          Room          @relation(fields: [roomId], references: [id])
+  property      Property      @relation(fields: [propertyId], references: [id])
   recordedBy    User          @relation(fields: [recordedById], references: [id])
 }

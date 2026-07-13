@@ -3,25 +3,13 @@ import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-const supplySchema = z.object({
-  item: z.string().min(1),
-  quantity: z.number().min(0),
-  unit: z.string().min(1),
-})
-
-const occupancyEntrySchema = z.object({
-  roomId: z.string().min(1),
-  status: z.enum(['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'BLOCKED']),
-  guestName: z.string().optional(),
-  checkIn: z.string().optional(),
-  checkOut: z.string().optional(),
-})
-
 const reportSchema = z.object({
   propertyId: z.string().min(1),
+  roomId: z.string().min(1),
   reportDate: z.string().min(1),
-  occupancy: z.array(occupancyEntrySchema),
-  supplies: z.array(supplySchema),
+  occupancyStatus: z.enum(['OCCUPIED', 'VACANT', 'CHECKOUT', 'NO_SHOW']),
+  guestName: z.string().optional(),
+  guestCount: z.number().int().min(1).default(1),
   notes: z.string().max(1000).optional(),
 })
 
@@ -42,19 +30,19 @@ export async function POST(request: Request) {
     )
   }
 
-  const { propertyId, reportDate, occupancy, supplies, notes } = parsed.data
+  const { propertyId, roomId, reportDate, occupancyStatus, guestName, guestCount, notes } = parsed.data
 
   const reportDateObj = new Date(reportDate)
   reportDateObj.setHours(0, 0, 0, 0)
 
   try {
     const existing = await prisma.dailyReport.findUnique({
-      where: { propertyId_reportDate: { propertyId, reportDate: reportDateObj } },
+      where: { roomId_reportDate: { roomId, reportDate: reportDateObj } },
     })
 
     if (existing) {
       return NextResponse.json(
-        { error: 'A report already exists for this property on this date' },
+        { error: 'A report already exists for this room on this date' },
         { status: 409 }
       )
     }
@@ -62,10 +50,12 @@ export async function POST(request: Request) {
     const report = await prisma.dailyReport.create({
       data: {
         propertyId,
+        roomId,
         reportDate: reportDateObj,
         submittedById: session.user.id,
-        occupancy,
-        supplies,
+        occupancyStatus,
+        guestName: guestName || null,
+        guestCount,
         notes: notes || null,
       },
     })

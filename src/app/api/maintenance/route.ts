@@ -7,8 +7,10 @@ const maintenanceSchema = z.object({
   propertyId: z.string().min(1),
   roomId: z.string().min(1),
   title: z.string().min(1).max(100),
-  priority: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  category: z.enum(['ELECTRICAL', 'PLUMBING', 'HVAC', 'FURNITURE', 'APPLIANCE', 'OTHER']),
   description: z.string().min(1).max(2000),
+  assignedToId: z.string().optional(),
   notes: z.string().optional(),
 })
 
@@ -29,7 +31,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const { propertyId, roomId, title, priority, description, notes } = parsed.data
+  const { propertyId, roomId, title, priority, category, description, assignedToId } = parsed.data
 
   try {
     const issue = await prisma.maintenanceIssue.create({
@@ -37,9 +39,11 @@ export async function POST(request: Request) {
         title,
         description,
         priority,
+        category,
         propertyId,
         roomId,
         raisedById: session.user.id,
+        assignedToId: assignedToId || null,
       },
     })
 

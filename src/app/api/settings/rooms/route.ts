@@ -7,7 +7,7 @@ const createRoomSchema = z.object({
   areaId: z.string().min(1),
   name: z.string().min(1).max(100),
   type: z.enum(['STUDIO', 'ONE_BEDROOM', 'TWO_BEDROOM', 'THREE_BEDROOM', 'PENTHOUSE']),
-  baseRate: z.number().min(0),
+  dailyRate: z.number().min(0),
 })
 
 export async function POST(request: Request) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         areaId: parsed.data.areaId,
         name: parsed.data.name,
         type: parsed.data.type,
-        baseRate: parsed.data.baseRate,
+        dailyRate: parsed.data.dailyRate,
       },
     })
 

@@ -5,12 +5,13 @@ import { prisma } from '@/lib/prisma'
 
 const incomeSchema = z.object({
   roomId: z.string().min(1),
+  propertyId: z.string().min(1),
   amount: z.number().min(0),
-  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CARD', 'ONLINE']),
-  bookingSource: z.enum(['DIRECT', 'AIRBNB', 'BOOKING_COM', 'OTHER']),
-  checkInDate: z.string().min(1),
-  checkOutDate: z.string().min(1),
+  source: z.enum(['ACCOMMODATION', 'MINIBAR', 'LAUNDRY', 'SERVICE_CHARGE', 'OTHER']),
+  paymentMethod: z.enum(['CASH', 'CARD', 'TRANSFER', 'POS', 'ONLINE']),
+  recordDate: z.string().min(1),
   guestName: z.string().optional(),
+  reference: z.string().optional(),
   notes: z.string().optional(),
 })
 
@@ -31,29 +32,20 @@ export async function POST(request: Request) {
     )
   }
 
-  const { roomId, amount, paymentMethod, bookingSource, checkInDate, checkOutDate, guestName, notes } = parsed.data
-
-  const checkIn = new Date(checkInDate)
-  const checkOut = new Date(checkOutDate)
-
-  if (checkOut <= checkIn) {
-    return NextResponse.json(
-      { error: 'Check-out date must be after check-in date' },
-      { status: 400 }
-    )
-  }
+  const { roomId, propertyId, amount, source, paymentMethod, recordDate, guestName, reference, notes } = parsed.data
 
   try {
     const record = await prisma.incomeRecord.create({
       data: {
         roomId,
+        propertyId,
         recordedById: session.user.id,
         amount,
+        source,
         paymentMethod,
-        bookingSource,
-        checkInDate: checkIn,
-        checkOutDate: checkOut,
+        recordDate: new Date(recordDate),
         guestName: guestName || null,
+        reference: reference || null,
         notes: notes || null,
       },
     })

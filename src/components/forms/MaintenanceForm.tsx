@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/Button'
-import type { MaintenancePriority } from '@prisma/client'
+import type { MaintenancePriority, MaintenanceCategory } from '@prisma/client'
 
 interface Room {
   id: string
@@ -15,24 +15,32 @@ interface Property {
   rooms: Room[]
 }
 
+interface User {
+  id: string
+  name: string
+}
+
 interface MaintenanceFormProps {
   properties: Property[]
+  users?: User[]
 }
 
 const priorityColors: Record<MaintenancePriority, string> = {
-  URGENT: 'bg-danger/10 text-danger border-danger/20',
+  CRITICAL: 'bg-danger/10 text-danger border-danger/20',
   HIGH: 'bg-warning/10 text-warning border-warning/20',
-  NORMAL: 'bg-primary/10 text-primary border-primary/20',
+  MEDIUM: 'bg-primary/10 text-primary border-primary/20',
   LOW: 'bg-border/50 text-text-sub border-border',
 }
 
-export default function MaintenanceForm({ properties }: MaintenanceFormProps) {
+export default function MaintenanceForm({ properties, users = [] }: MaintenanceFormProps) {
   const [selectedPropertyId, setSelectedPropertyId] = useState(
     properties.length === 1 ? properties[0].id : ''
   )
   const [selectedRoomId, setSelectedRoomId] = useState('')
   const [title, setTitle] = useState('')
-  const [priority, setPriority] = useState<MaintenancePriority>('NORMAL')
+  const [priority, setPriority] = useState<MaintenancePriority>('MEDIUM')
+  const [category, setCategory] = useState<MaintenanceCategory>('OTHER')
+  const [assignedToId, setAssignedToId] = useState('')
   const [description, setDescription] = useState('')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -64,6 +72,8 @@ export default function MaintenanceForm({ properties }: MaintenanceFormProps) {
           roomId: selectedRoomId,
           title,
           priority,
+          category,
+          assignedToId: assignedToId || undefined,
           description,
           notes: notes.trim() || undefined,
         }),
@@ -80,8 +90,10 @@ export default function MaintenanceForm({ properties }: MaintenanceFormProps) {
       setTitle('')
       setDescription('')
       setNotes('')
-      setPriority('NORMAL')
+      setPriority('MEDIUM')
+      setCategory('OTHER')
       setSelectedRoomId('')
+      setAssignedToId('')
     } catch {
       setErrorMsg('Network error. Please try again.')
     } finally {
@@ -172,10 +184,50 @@ export default function MaintenanceForm({ properties }: MaintenanceFormProps) {
             onChange={(e) => setPriority(e.target.value as MaintenancePriority)}
             className={`mt-1 block w-full rounded-lg border px-3 py-2 text-sm font-medium ${priorityColors[priority]}`}
           >
-            <option value="URGENT">Urgent</option>
-            <option value="HIGH">High</option>
-            <option value="NORMAL">Normal</option>
             <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="CRITICAL">Critical</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="category" className="block text-sm font-medium text-text-main">
+            Category
+          </label>
+          <select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as MaintenanceCategory)}
+            className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="ELECTRICAL">Electrical</option>
+            <option value="PLUMBING">Plumbing</option>
+            <option value="HVAC">HVAC</option>
+            <option value="FURNITURE">Furniture</option>
+            <option value="APPLIANCE">Appliance</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="assignedTo" className="block text-sm font-medium text-text-main">
+            Assign To (optional)
+          </label>
+          <select
+            id="assignedTo"
+            value={assignedToId}
+            onChange={(e) => setAssignedToId(e.target.value)}
+            className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="">Unassigned</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>

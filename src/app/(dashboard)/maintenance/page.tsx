@@ -16,8 +16,8 @@ export default async function MaintenancePage() {
   let issues: {
     id: string
     title: string
-    priority: 'URGENT' | 'HIGH' | 'NORMAL' | 'LOW'
-    status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+    status: 'REPORTED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
     createdAt: Date
     room: { name: string; area: { name: string } }
     property: { name: string }

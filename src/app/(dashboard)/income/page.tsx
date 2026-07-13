@@ -19,26 +19,13 @@ export default async function IncomePage() {
       : { propertyId: { in: session.user.propertyIds } }
 
   const records = await prisma.incomeRecord.findMany({
-    where: {
-      room: {
-        area: {
-          ...propertyFilter,
-        },
-      },
-    },
+    where: propertyFilter,
     include: {
-      room: {
-        include: {
-          area: {
-            include: {
-              property: { select: { name: true } },
-            },
-          },
-        },
-      },
+      room: { select: { name: true } },
+      property: { select: { name: true } },
       recordedBy: { select: { name: true } },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { recordDate: 'desc' },
   })
 
   const properties = await prisma.property.findMany({
@@ -54,13 +41,14 @@ export default async function IncomePage() {
     id: r.id,
     amount: r.amount,
     paymentMethod: r.paymentMethod,
-    bookingSource: r.bookingSource,
+    source: r.source,
     guestName: r.guestName,
-    checkInDate: r.checkInDate.toISOString().split('T')[0],
-    checkOutDate: r.checkOutDate.toISOString().split('T')[0],
+    recordDate: r.recordDate.toISOString().split('T')[0],
+    reference: r.reference,
+    verified: r.verified,
     notes: r.notes,
     createdAt: r.createdAt.toISOString(),
-    property: r.room.area.property.name,
+    property: r.property.name,
     room: r.room.name,
     recordedBy: r.recordedBy.name,
   }))

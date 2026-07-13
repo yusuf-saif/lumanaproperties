@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/Button'
-import type { PaymentMethod, BookingSource } from '@prisma/client'
+import type { PaymentMethod, IncomeSource } from '@prisma/client'
 
 interface Room {
   id: string
@@ -28,10 +28,10 @@ export default function IncomeForm({ properties }: IncomeFormProps) {
   const [selectedRoomId, setSelectedRoomId] = useState('')
   const [amount, setAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH')
-  const [bookingSource, setBookingSource] = useState<BookingSource>('DIRECT')
-  const [checkInDate, setCheckInDate] = useState(today())
-  const [checkOutDate, setCheckOutDate] = useState('')
+  const [source, setSource] = useState<IncomeSource>('ACCOMMODATION')
+  const [recordDate, setRecordDate] = useState(today())
   const [guestName, setGuestName] = useState('')
+  const [reference, setReference] = useState('')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
@@ -59,12 +59,13 @@ export default function IncomeForm({ properties }: IncomeFormProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roomId: selectedRoomId,
+          propertyId: selectedPropertyId,
           amount: parseFloat(amount),
           paymentMethod,
-          bookingSource,
-          checkInDate,
-          checkOutDate,
+          source,
+          recordDate,
           guestName: guestName.trim() || undefined,
+          reference: reference.trim() || undefined,
           notes: notes.trim() || undefined,
         }),
       })
@@ -80,11 +81,11 @@ export default function IncomeForm({ properties }: IncomeFormProps) {
       setAmount('')
       setSelectedRoomId('')
       setGuestName('')
+      setReference('')
       setNotes('')
-      setCheckOutDate('')
       setPaymentMethod('CASH')
-      setBookingSource('DIRECT')
-      setCheckInDate(today())
+      setSource('ACCOMMODATION')
+      setRecordDate(today())
     } catch {
       setErrorMsg('Network error. Please try again.')
     } finally {
@@ -167,6 +168,22 @@ export default function IncomeForm({ properties }: IncomeFormProps) {
         </div>
 
         <div>
+          <label htmlFor="recordDate" className="block text-sm font-medium text-text-main">
+            Record Date
+          </label>
+          <input
+            id="recordDate"
+            type="date"
+            value={recordDate}
+            onChange={(e) => setRecordDate(e.target.value)}
+            required
+            className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
           <label htmlFor="paymentMethod" className="block text-sm font-medium text-text-main">
             Payment Method
           </label>
@@ -177,31 +194,33 @@ export default function IncomeForm({ properties }: IncomeFormProps) {
             className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           >
             <option value="CASH">Cash</option>
-            <option value="BANK_TRANSFER">Bank Transfer</option>
             <option value="CARD">Card</option>
+            <option value="TRANSFER">Transfer</option>
+            <option value="POS">POS</option>
             <option value="ONLINE">Online</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="source" className="block text-sm font-medium text-text-main">
+            Source
+          </label>
+          <select
+            id="source"
+            value={source}
+            onChange={(e) => setSource(e.target.value as IncomeSource)}
+            className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="ACCOMMODATION">Accommodation</option>
+            <option value="MINIBAR">Minibar</option>
+            <option value="LAUNDRY">Laundry</option>
+            <option value="SERVICE_CHARGE">Service Charge</option>
+            <option value="OTHER">Other</option>
           </select>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="bookingSource" className="block text-sm font-medium text-text-main">
-            Booking Source
-          </label>
-          <select
-            id="bookingSource"
-            value={bookingSource}
-            onChange={(e) => setBookingSource(e.target.value as BookingSource)}
-            className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            <option value="DIRECT">Direct</option>
-            <option value="AIRBNB">Airbnb</option>
-            <option value="BOOKING_COM">Booking.com</option>
-            <option value="OTHER">Other</option>
-          </select>
-        </div>
-
         <div>
           <label htmlFor="guestName" className="block text-sm font-medium text-text-main">
             Guest Name
@@ -215,34 +234,18 @@ export default function IncomeForm({ properties }: IncomeFormProps) {
             className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main placeholder:text-text-sub focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="checkInDate" className="block text-sm font-medium text-text-main">
-            Check-in Date
-          </label>
-          <input
-            id="checkInDate"
-            type="date"
-            value={checkInDate}
-            onChange={(e) => setCheckInDate(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
 
         <div>
-          <label htmlFor="checkOutDate" className="block text-sm font-medium text-text-main">
-            Check-out Date
+          <label htmlFor="reference" className="block text-sm font-medium text-text-main">
+            Reference
           </label>
           <input
-            id="checkOutDate"
-            type="date"
-            value={checkOutDate}
-            onChange={(e) => setCheckOutDate(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            id="reference"
+            type="text"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder="Optional transaction reference"
+            className="mt-1 block w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-main placeholder:text-text-sub focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
       </div>
