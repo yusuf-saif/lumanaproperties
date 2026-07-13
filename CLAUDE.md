@@ -55,6 +55,7 @@
 | components/PropertyManager.tsx     | Yes    | Property/area/room CRUD                  |
 | components/RoomAvailabilityGrid.tsx | Yes   | Room availability grid with status cards |
 | components/UserManager.tsx         | Yes    | User invite + role/property management   |
+| components/layout/NotificationBell.tsx | Yes | Notification bell dropdown + mark read   |
 
 ## Lib Map
 | File                  | Purpose                                    |
@@ -63,9 +64,10 @@
 | lib/auth.ts           | NextAuth v5 config, JWT callbacks, session |
 | lib/utils/cn.ts       | clsx + tailwind-merge utility              |
 | lib/utils/format.ts   | Currency, date, enum formatting            |
+| lib/notifications.ts  | Server helpers: create notifications (try/catch) |
 
 ## Prisma Models
-User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteToken, PasswordResetToken, IncomeRecord
+User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteToken, PasswordResetToken, IncomeRecord, Notification
 
 ## Enums
 - **Role:** SUPER_ADMIN | PROPERTY_MANAGER | STAFF | VIEWER
@@ -77,6 +79,7 @@ User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteT
 - **MaintenanceCategory:** ELECTRICAL | PLUMBING | HVAC | FURNITURE | APPLIANCE | OTHER
 - **PaymentMethod:** CASH | CARD | TRANSFER | POS | ONLINE
 - **IncomeSource:** ACCOMMODATION | MINIBAR | LAUNDRY | SERVICE_CHARGE | OTHER
+- **NotificationType:** REPORT_MISSING | MAINTENANCE_CRITICAL | MAINTENANCE_RESOLVED | MAINTENANCE_OVERDUE | INCOME_UNVERIFIED | USER_INVITED
 
 ## API Routes
 | Method | Path                                  | Purpose                              |
@@ -98,6 +101,10 @@ User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteT
 | POST   | /api/auth/forgot-password             | Request password reset email         |
 | POST   | /api/auth/reset-password              | Reset password with token            |
 | PATCH  | /api/income/[id]                      | Verify/unverify income record        |
+| GET    | /api/notifications                    | List user's notifications + unread count |
+| PATCH  | /api/notifications/[id]               | Mark single notification as read     |
+| POST   | /api/notifications/read-all           | Mark all user's notifications read   |
+| POST   | /api/maintenance/upload               | Upload images, return base64 data URLs |
 
 ## Session Shape
 ```ts
@@ -220,9 +227,20 @@ session.user = {
 - [x] ReportGenerator: all 7 report types supported, non-table renderer for consolidated-summary
 - [x] API: POST /api/reports/generate — staff-performance and consolidated-summary cases added
 
+### Phase 4.5 — Complete
+- [x] Notification model: 6 types (REPORT_MISSING, MAINTENANCE_CRITICAL, MAINTENANCE_RESOLVED, MAINTENANCE_OVERDUE, INCOME_UNVERIFIED, USER_INVITED), per-user, read/unread state, indexed
+- [x] notifications.ts: server helpers for critical/resolved/missing/income notifications (all try/catch)
+- [x] Wired into maintenance POST (CRITICAL/HIGH → managers+admins), maintenance PATCH (RESOLVED → reporter), income POST (managers+admins)
+- [x] NotificationBell: dropdown panel, unread count badge, mark all read, 60s auto-refresh
+- [x] Topbar: server-side unread count fetch, passes to NotificationBell
+- [x] API: GET /api/notifications (list + unread count), PATCH /api/notifications/[id] (mark read), POST /api/notifications/read-all
+- [x] MaintenanceForm: photo upload with client-side canvas compression (800px, 0.7 quality), 3-photo max, preview thumbnails with remove
+- [x] API: POST /api/maintenance/upload — validates JPEG/PNG, 2MB limit, returns base64 data URLs
+- [x] Maintenance detail page: photo styling updated (max-h-48 object-cover)
+
 ### Remaining
 - [ ] Dashboard charts/analytics
-- [ ] File upload for maintenance photos
 - [ ] Middleware for role-based route protection
 - [ ] Email templates for invite flow
 - [ ] CSV import for bulk data
+- [ ] Escalation alert if Critical issue unresolved > 24 hours (MAINTENANCE_OVERDUE)

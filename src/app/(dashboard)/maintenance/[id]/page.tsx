@@ -131,7 +131,7 @@ export default async function MaintenanceDetailPage({
                       key={i}
                       src={url}
                       alt={`Photo ${i + 1}`}
-                      className="h-32 w-full rounded-lg object-cover"
+                      className="max-h-48 w-full rounded-lg object-cover"
                     />
                   ))}
                 </div>

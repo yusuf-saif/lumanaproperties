@@ -75,6 +75,15 @@ enum IncomeSource {
   OTHER
 }
 
+enum NotificationType {
+  REPORT_MISSING
+  MAINTENANCE_CRITICAL
+  MAINTENANCE_RESOLVED
+  MAINTENANCE_OVERDUE
+  INCOME_UNVERIFIED
+  USER_INVITED
+}
+
 model User {
   id                   String             @id @default(cuid())
   name                 String
@@ -92,6 +101,7 @@ model User {
   maintenanceResolved  MaintenanceIssue[] @relation("ResolvedBy")
   maintenanceAssigned  MaintenanceIssue[] @relation("AssignedTo")
   incomeRecords        IncomeRecord[]
+  notifications        Notification[]
 }
 
 model Property {
@@ -220,4 +230,19 @@ model IncomeRecord {
   room          Room          @relation(fields: [roomId], references: [id])
   property      Property      @relation(fields: [propertyId], references: [id])
   recordedBy    User          @relation(fields: [recordedById], references: [id])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  read      Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@index([userId, read])
+  @@index([userId, createdAt(sort: Desc)])
 }

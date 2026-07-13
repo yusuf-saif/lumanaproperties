@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyIncomeUnverified } from '@/lib/notifications'
 
 const incomeSchema = z.object({
   roomId: z.string().min(1),
@@ -49,6 +50,16 @@ export async function POST(request: Request) {
         notes: notes || null,
       },
     })
+
+    const managersAndAdmins = await prisma.user.findMany({
+      where: {
+        active: true,
+        role: { in: ['SUPER_ADMIN', 'PROPERTY_MANAGER'] },
+        propertyUsers: { some: { propertyId } },
+      },
+      select: { id: true },
+    })
+    await notifyIncomeUnverified(record, managersAndAdmins)
 
     return NextResponse.json({ success: true, recordId: record.id })
   } catch (error) {

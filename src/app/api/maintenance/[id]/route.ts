@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyMaintenanceResolved } from '@/lib/notifications'
 
 const patchSchema = z.object({
   status: z.enum(['REPORTED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']).optional(),
@@ -68,6 +69,14 @@ export async function PATCH(
       where: { id: params.id },
       data: updateData,
     })
+
+    if (status === 'RESOLVED') {
+      await notifyMaintenanceResolved({
+        id: updated.id,
+        title: updated.title,
+        raisedById: updated.raisedById,
+      })
+    }
 
     return NextResponse.json({ success: true, issue: updated })
   } catch (error) {

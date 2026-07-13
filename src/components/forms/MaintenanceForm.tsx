@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
+import { ImagePlus, X } from 'lucide-react'
 import type { MaintenancePriority, MaintenanceCategory } from '@prisma/client'
 
 interface Room {
@@ -32,6 +33,36 @@ const priorityColors: Record<MaintenancePriority, string> = {
   LOW: 'bg-border/50 text-text-sub border-border',
 }
 
+const MAX_PHOTOS = 3
+
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const canvas = document.createElement('canvas')
+      let { width, height } = img
+      const maxWidth = 800
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width
+        width = maxWidth
+      }
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        reject(new Error('Canvas not supported'))
+        return
+      }
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', 0.7))
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = url
+  })
+}
+
 export default function MaintenanceForm({ properties, users = [] }: MaintenanceFormProps) {
   const [selectedPropertyId, setSelectedPropertyId] = useState(
     properties.length === 1 ? properties[0].id : ''
@@ -43,9 +74,12 @@ export default function MaintenanceForm({ properties, users = [] }: MaintenanceF
   const [assignedToId, setAssignedToId] = useState('')
   const [description, setDescription] = useState('')
   const [notes, setNotes] = useState('')
+  const [photos, setPhotos] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [photoError, setPhotoError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const filteredRooms = useMemo(() => {
     const prop = properties.find((p) => p.id === selectedPropertyId)
@@ -55,6 +89,49 @@ export default function MaintenanceForm({ properties, users = [] }: MaintenanceF
   const handlePropertyChange = (propertyId: string) => {
     setSelectedPropertyId(propertyId)
     setSelectedRoomId('')
+  }
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+    setPhotoError('')
+
+    const remaining = MAX_PHOTOS - photos.length
+    if (remaining <= 0) {
+      setPhotoError(`Maximum ${MAX_PHOTOS} photos allowed`)
+      return
+    }
+
+    const filesToProcess = Array.from(files).slice(0, remaining)
+    const newPhotos: string[] = []
+
+    for (const file of filesToProcess) {
+      if (file.size > 2 * 1024 * 1024) {
+        setPhotoError(`${file.name} exceeds 2MB limit`)
+        continue
+      }
+      if (file.type !== 'image/jpeg' && file.type !== 'image/png') {
+        setPhotoError(`${file.name}: only JPEG and PNG allowed`)
+        continue
+      }
+      try {
+        const compressed = await compressImage(file)
+        newPhotos.push(compressed)
+      } catch {
+        setPhotoError(`Failed to process ${file.name}`)
+      }
+    }
+
+    if (newPhotos.length > 0) {
+      setPhotos((prev) => [...prev, ...newPhotos].slice(0, MAX_PHOTOS))
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,6 +153,7 @@ export default function MaintenanceForm({ properties, users = [] }: MaintenanceF
           assignedToId: assignedToId || undefined,
           description,
           notes: notes.trim() || undefined,
+          photos: photos.length > 0 ? photos : undefined,
         }),
       })
 
@@ -94,6 +172,7 @@ export default function MaintenanceForm({ properties, users = [] }: MaintenanceF
       setCategory('OTHER')
       setSelectedRoomId('')
       setAssignedToId('')
+      setPhotos([])
     } catch {
       setErrorMsg('Network error. Please try again.')
     } finally {
@@ -249,6 +328,51 @@ export default function MaintenanceForm({ properties, users = [] }: MaintenanceF
         <p className="mt-1 text-right text-xs text-text-sub">
           {description.length}/2000
         </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-text-main">
+          Photos ({photos.length} of {MAX_PHOTOS})
+        </label>
+        <div className="mt-2 flex flex-wrap gap-3">
+          {photos.map((photo, i) => (
+            <div key={i} className="relative">
+              <img
+                src={photo}
+                alt={`Photo ${i + 1}`}
+                className="h-20 w-20 rounded-lg object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => removePhoto(i)}
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-danger text-white"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+          {photos.length < MAX_PHOTOS && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex h-20 w-20 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border text-text-sub hover:border-primary hover:text-primary"
+            >
+              <ImagePlus size={20} />
+              <span className="mt-1 text-[10px]">Add</span>
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png"
+          multiple
+          onChange={handlePhotoSelect}
+          className="hidden"
+        />
+        {photoError && (
+          <p className="mt-1 text-xs text-danger">{photoError}</p>
+        )}
       </div>
 
       <div>
