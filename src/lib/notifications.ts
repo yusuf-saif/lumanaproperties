@@ -67,3 +67,18 @@ export async function notifyIncomeUnverified(
   }))
   await createNotifications(notifications)
 }
+
+export async function notifyMaintenanceOverdue(
+  issue: { id: string; title: string; propertyId: string },
+  propertyName: string,
+  managers: { id: string }[]
+) {
+  const notifications = managers.map((user) => ({
+    userId: user.id,
+    title: 'Critical Issue Overdue',
+    message: `Critical issue "${issue.title}" at ${propertyName} has been unresolved for over 24 hours.`,
+    type: 'MAINTENANCE_OVERDUE' as NotificationType,
+    link: `/maintenance/${issue.id}`,
+  }))
+  await createNotifications(notifications)
+}

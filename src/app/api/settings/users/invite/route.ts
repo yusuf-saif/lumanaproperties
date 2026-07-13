@@ -3,6 +3,7 @@ import { z } from 'zod'
 import crypto from 'crypto'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { sendInviteEmail } from '@/lib/email'
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -54,25 +55,13 @@ export async function POST(request: Request) {
       },
     })
 
-    if (process.env.RESEND_API_KEY) {
-      try {
-        const { Resend } = await import('resend')
-        const resend = new Resend(process.env.RESEND_API_KEY)
-        await resend.emails.send({
-          from: 'LUMANA <noreply@lumana.app>',
-          to: email,
-          subject: 'You\'ve been invited to LUMANA Operations',
-          html: `<p>You've been invited to join LUMANA Operations as a <strong>${role.replace('_', ' ')}</strong>.</p>
-                 <p>Click the link below to set up your account:</p>
-                 <p><a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/invite/${token.token}">Accept Invitation</a></p>
-                 <p>This link expires in 7 days.</p>`,
-        })
-      } catch (emailError) {
-        console.error('Failed to send invite email:', emailError)
-      }
-    } else {
-      console.log(`[Invite] ${email} — role: ${role}, token: ${token.token}`)
-    }
+    const inviteUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/invite/${token.token}`
+    await sendInviteEmail({
+      to: email,
+      inviteUrl,
+      role,
+      inviterName: session.user.name ?? 'A Lumana administrator',
+    })
 
     return NextResponse.json({ success: true, tokenId: token.id })
   } catch (error) {

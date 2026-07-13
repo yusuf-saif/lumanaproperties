@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import Topbar from '@/components/layout/Topbar'
 import { IncomeFilterBar } from '@/components/IncomeFilterBar'
+import IncomeImportModal from '@/components/IncomeImportModal'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,10 +54,17 @@ export default async function IncomePage() {
     recordedBy: r.recordedBy.name,
   }))
 
+  const canImport = session.user.role === 'SUPER_ADMIN' || session.user.role === 'PROPERTY_MANAGER'
+
   return (
     <div>
       <Topbar title="Income" />
       <div className="p-6">
+        {canImport && (
+          <div className="mb-4">
+            <IncomeImportModal />
+          </div>
+        )}
         <IncomeFilterBar records={formatted} properties={properties} currentUserRole={session.user.role} />
       </div>
     </div>

@@ -64,6 +64,7 @@
 | components/charts/MaintenanceStatusChart.tsx | Yes | Maintenance by status pie chart  |
 | components/layout/DashboardShell.tsx | Yes     | Client wrapper managing sidebar state     |
 | components/forms/ChangePasswordForm.tsx | Yes | Change password form with validation      |
+| components/IncomeImportModal.tsx       | Yes | CSV income import modal with result display|
 
 ## Lib Map
 | File                  | Purpose                                    |
@@ -73,6 +74,7 @@
 | lib/utils/cn.ts       | clsx + tailwind-merge utility              |
 | lib/utils/format.ts   | Currency, date, enum formatting            |
 | lib/notifications.ts  | Server helpers: create notifications (try/catch) |
+| lib/email.ts          | Centralized email sending with HTML templates |
 
 ## Prisma Models
 User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteToken, PasswordResetToken, IncomeRecord, Notification
@@ -115,6 +117,8 @@ User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteT
 | POST   | /api/maintenance/upload               | Upload images, return base64 data URLs |
 | POST   | /api/settings/rooms/import             | Bulk import rooms via CSV (SUPER_ADMIN) |
 | PATCH  | /api/auth/password                      | Change password (auth required)          |
+| GET    | /api/cron/maintenance-overdue           | Find critical issues > 24h, send alerts  |
+| POST   | /api/income/import                      | Bulk import income records via CSV       |
 
 ## Session Shape
 ```ts
@@ -268,8 +272,21 @@ session.user = {
 - [x] NotificationBell: initialUnreadCount optional (defaults 0), fetches on mount
 - [x] Dashboard layout: simplified to SessionProvider + DashboardShell (server component preserved)
 
+### Phase 6 — Complete
+- [x] src/lib/email.ts: centralized email sending with HTML templates (invite, password reset, maintenance alert)
+- [x] Invite route updated to use sendInviteEmail
+- [x] Forgot-password route updated to use sendPasswordResetEmail
+- [x] Maintenance POST wired to sendMaintenanceAlertEmail (one email per manager)
+- [x] notifyMaintenanceOverdue helper added to notifications.ts
+- [x] GET /api/cron/maintenance-overdue: finds critical issues > 24h unresolved, creates overdue notifications, sends alert emails
+- [x] POST /api/income/import: CSV bulk import (papaparse, validation, createMany)
+- [x] IncomeImportModal: client component with file picker, result display, router.refresh on success
+- [x] Income page: Import button for SUPER_ADMIN + PROPERTY_MANAGER
+- [x] .env.example: added CRON_SECRET, FROM_EMAIL
+
 ### Remaining
-- [ ] Email templates for invite flow
-- [ ] Escalation alert if Critical issue unresolved > 24 hours (MAINTENANCE_OVERDUE)
-- [ ] Bulk income CSV import
+- [ ] Railway deploy verification + QA
+- [ ] Email templates for invite flow (✅ done — HTML templates in email.ts)
+- [ ] Escalation alert if Critical issue unresolved > 24 hours (✅ done — /api/cron/maintenance-overdue)
+- [ ] Bulk income CSV import (✅ done — /api/income/import)
 - [ ] Role-based middleware enforcement (currently auth-only, role checks in pages)

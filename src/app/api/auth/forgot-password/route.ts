@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { sendPasswordResetEmail } from '@/lib/email'
 
 const forgotSchema = z.object({
   email: z.string().email(),
@@ -35,31 +36,7 @@ export async function POST(request: Request) {
   })
 
   const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`
-
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const { Resend } = await import('resend')
-      const resend = new Resend(process.env.RESEND_API_KEY)
-
-      await resend.emails.send({
-        from: 'Lumana Dashboard <onboarding@resend.dev>',
-        to: email,
-        subject: 'Reset your Lumana Dashboard password',
-        html: `
-          <p>Hello,</p>
-          <p>You requested a password reset for your Lumana Dashboard account.</p>
-          <p>Click the link below to set a new password. This link expires in 1 hour.</p>
-          <p><a href="${resetUrl}">Reset your password</a></p>
-          <p>If you did not request this, you can safely ignore this email.</p>
-          <p>— Lumana Team</p>
-        `,
-      })
-    } catch (err) {
-      console.error('Failed to send reset email:', err)
-    }
-  } else {
-    console.log('Password reset URL (no RESEND_API_KEY):', resetUrl)
-  }
+  await sendPasswordResetEmail({ to: email, resetUrl })
 
   return NextResponse.json({ success: true })
 }

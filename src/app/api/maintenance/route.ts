@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { notifyMaintenanceCritical } from '@/lib/notifications'
+import { sendMaintenanceAlertEmail } from '@/lib/email'
 
 const maintenanceSchema = z.object({
   propertyId: z.string().min(1),
@@ -61,9 +62,26 @@ export async function POST(request: Request) {
           role: { in: ['SUPER_ADMIN', 'PROPERTY_MANAGER'] },
           propertyUsers: { some: { propertyId } },
         },
-        select: { id: true },
+        select: { id: true, email: true },
       })
+
       await notifyMaintenanceCritical(issue, managersAndAdmins)
+
+      const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { name: true },
+      })
+
+      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+      for (const manager of managersAndAdmins) {
+        await sendMaintenanceAlertEmail({
+          to: manager.email,
+          issueTitle: title,
+          propertyName: property?.name ?? 'Unknown Property',
+          priority,
+          issueUrl: `${baseUrl}/maintenance/${issue.id}`,
+        })
+      }
     }
 
     return NextResponse.json({ success: true, issueId: issue.id })
