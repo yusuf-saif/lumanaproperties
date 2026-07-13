@@ -3,14 +3,17 @@
 import { useSession, signOut } from 'next-auth/react'
 import { Menu } from 'lucide-react'
 import NotificationBell from '@/components/layout/NotificationBell'
+import type { Session } from 'next-auth'
 
 interface TopbarProps {
   title?: string
   onMenuClick?: () => void
+  session?: Session | null
 }
 
-export default function Topbar({ title, onMenuClick }: TopbarProps) {
-  const { data: session } = useSession()
+export default function Topbar({ title, onMenuClick, session: propSession }: TopbarProps) {
+  const { data: hookSession } = useSession()
+  const session = propSession ?? hookSession
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">

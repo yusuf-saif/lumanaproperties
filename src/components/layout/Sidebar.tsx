@@ -15,6 +15,7 @@ import {
   UserCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import type { Session } from 'next-auth'
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
@@ -32,11 +33,13 @@ const settingsItems = [
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
+  session?: Session | null
 }
 
-export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, session: propSession }: SidebarProps) {
   const pathname = usePathname()
-  const { data: session } = useSession()
+  const { data: hookSession } = useSession()
+  const session = propSession ?? hookSession
   const userRole = session?.user?.role
 
   const filteredNav = userRole
