@@ -62,6 +62,8 @@
 | components/charts/OccupancyChart.tsx | Yes   | 7-day occupancy trend line chart         |
 | components/charts/IncomeChart.tsx    | Yes    | 7-day revenue bar chart                  |
 | components/charts/MaintenanceStatusChart.tsx | Yes | Maintenance by status pie chart  |
+| components/layout/DashboardShell.tsx | Yes     | Client wrapper managing sidebar state     |
+| components/forms/ChangePasswordForm.tsx | Yes | Change password form with validation      |
 
 ## Lib Map
 | File                  | Purpose                                    |
@@ -112,6 +114,7 @@ User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteT
 | POST   | /api/notifications/read-all           | Mark all user's notifications read   |
 | POST   | /api/maintenance/upload               | Upload images, return base64 data URLs |
 | POST   | /api/settings/rooms/import             | Bulk import rooms via CSV (SUPER_ADMIN) |
+| PATCH  | /api/auth/password                      | Change password (auth required)          |
 
 ## Session Shape
 ```ts
@@ -252,6 +255,18 @@ session.user = {
 - [x] OccupancyChart, IncomeChart, MaintenanceStatusChart client components
 - [x] Bulk room CSV import: /api/settings/rooms/import (SUPER_ADMIN only, papaparse, validation, bulk create)
 - [x] PropertyManager: Import Rooms button per area with modal, CSV upload, result display, tree refresh
+
+### Phase 5.5 — Complete
+- [x] Profile page: /profile with user info card (name, email, role, phone, member since)
+- [x] ChangePasswordForm: current + new + confirm fields, show/hide toggle, client validation
+- [x] API: PATCH /api/auth/password — bcrypt verify + hash, auth-gated
+- [x] Sidebar: Profile link (UserCircle icon, all roles, bottom near logout)
+- [x] VIEWER guards: POST /api/reports, POST /api/maintenance, PATCH /api/maintenance/[id] all block VIEWER role
+- [x] Mobile sidebar: DashboardShell client component manages sidebar open/close state
+- [x] Sidebar: mobile slide-in overlay with backdrop, hidden on lg+, desktop unchanged
+- [x] Topbar: hamburger Menu button (lg:hidden), passes onMenuClick to DashboardShell
+- [x] NotificationBell: initialUnreadCount optional (defaults 0), fetches on mount
+- [x] Dashboard layout: simplified to SessionProvider + DashboardShell (server component preserved)
 
 ### Remaining
 - [ ] Email templates for invite flow

@@ -23,6 +23,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (session.user.role === 'VIEWER') {
+    return NextResponse.json({ error: 'Viewers cannot submit data' }, { status: 403 })
+  }
+
   const body = await request.json()
   const parsed = incomeSchema.safeParse(body)
 

@@ -1,22 +1,14 @@
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
-import Sidebar from '@/components/layout/Sidebar'
+import { SessionProvider } from 'next-auth/react'
+import DashboardShell from '@/components/layout/DashboardShell'
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
-
-  if (!session) {
-    redirect('/login')
-  }
-
   return (
-    <div className="min-h-screen bg-surface">
-      <Sidebar />
-      <main className="ml-64 min-h-screen">{children}</main>
-    </div>
+    <SessionProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </SessionProvider>
   )
 }

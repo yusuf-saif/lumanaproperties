@@ -15,7 +15,7 @@ export default async function SubmitLayout({
 
   return (
     <div className="min-h-screen bg-surface">
-      <Sidebar />
+      <Sidebar isOpen={false} onClose={() => {}} />
       <main className="ml-64 min-h-screen">{children}</main>
     </div>
   )

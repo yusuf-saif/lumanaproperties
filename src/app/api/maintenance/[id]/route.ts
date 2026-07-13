@@ -40,9 +40,9 @@ export async function PATCH(
     return NextResponse.json({ error: 'Issue not found' }, { status: 404 })
   }
 
-  if (session.user.role === 'STAFF') {
+  if (session.user.role === 'STAFF' || session.user.role === 'VIEWER') {
     return NextResponse.json(
-      { error: 'Staff members cannot update issues' },
+      { error: 'Staff and viewers cannot update issues' },
       { status: 403 }
     )
   }

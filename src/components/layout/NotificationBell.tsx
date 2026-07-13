@@ -41,10 +41,10 @@ function NotificationSkeleton() {
 }
 
 interface NotificationBellProps {
-  initialUnreadCount: number
+  initialUnreadCount?: number
 }
 
-export default function NotificationBell({ initialUnreadCount }: NotificationBellProps) {
+export default function NotificationBell({ initialUnreadCount = 0 }: NotificationBellProps) {
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
   const [isOpen, setIsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -67,6 +67,11 @@ export default function NotificationBell({ initialUnreadCount }: NotificationBel
       setLoading(false)
     }
   }, [])
+
+  // Fetch unread count on mount
+  useEffect(() => {
+    fetchNotifications()
+  }, [fetchNotifications])
 
   const fetchUnreadCount = useCallback(async () => {
     try {

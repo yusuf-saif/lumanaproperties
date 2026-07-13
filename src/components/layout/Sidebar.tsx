@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut, useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
   Wrench,
@@ -12,81 +12,132 @@ import {
   Settings,
   LogOut,
   Building2,
+  UserCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
-import type { Role } from '@prisma/client'
 
-interface NavItem {
-  label: string
-  href: string
-  icon: React.ReactNode
-  roles?: Role[]
-}
-
-const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/', icon: <LayoutDashboard size={20} /> },
-  {
-    label: 'Properties',
-    href: '/properties',
-    icon: <Building2 size={20} />,
-    roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER'],
-  },
-  { label: 'Maintenance', href: '/maintenance', icon: <Wrench size={20} /> },
-  { label: 'Income', href: '/income', icon: <DollarSign size={20} /> },
-  { label: 'Reports', href: '/reports', icon: <FileText size={20} /> },
-  {
-    label: 'Submit Report',
-    href: '/submit',
-    icon: <ClipboardList size={20} />,
-    roles: ['STAFF', 'PROPERTY_MANAGER'],
-  },
-  {
-    label: 'Settings',
-    href: '/settings/properties',
-    icon: <Settings size={20} />,
-    roles: ['SUPER_ADMIN'],
-  },
+const navItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/properties', label: 'Properties', icon: Building2, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER'] },
+  { href: '/daily-reports', label: 'Daily Reports', icon: ClipboardList, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/income', label: 'Income', icon: DollarSign, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/maintenance', label: 'Maintenance', icon: Wrench, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/reports', label: 'Reports', icon: FileText, roles: ['ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
 ]
 
-export default function Sidebar() {
+const settingsItems = [
+  { href: '/settings', label: 'Settings', icon: Settings, roles: ['SUPER_ADMIN'] },
+]
+
+interface SidebarProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
-  const user = session?.user
+  const userRole = session?.user?.role
+
+  const filteredNav = navItems.filter(item => item.roles.includes(userRole ?? ''))
+  const filteredSettings = settingsItems.filter(item => item.roles.includes(userRole ?? ''))
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-sidebar text-white">
-      <div className="flex h-16 items-center border-b border-white/10 px-6">
-        <div>
-          <span className="text-lg font-bold tracking-tight">LUMANA</span>
-          <span className="ml-2 text-sm text-primary">Operations</span>
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex lg:w-64 lg:flex-col bg-sidebar">
+        <SidebarContent
+          pathname={pathname}
+          user={session?.user}
+          navItems={filteredNav}
+          settingsItems={filteredSettings}
+        />
+      </aside>
+
+      {/* Mobile sidebar */}
+      {isOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={onClose}
+          />
+          {/* Slide-in panel */}
+          <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-sidebar transition-transform duration-200 ease-in-out">
+            <SidebarContent
+              pathname={pathname}
+              user={session?.user}
+              navItems={filteredNav}
+              settingsItems={filteredSettings}
+            />
+          </aside>
         </div>
+      )}
+    </>
+  )
+}
+
+function SidebarContent({
+  pathname,
+  user,
+  navItems: nav,
+  settingsItems: settings,
+}: {
+  pathname: string
+  user: { name?: string | null; role?: string | null } | undefined
+  navItems: typeof navItems
+  settingsItems: typeof settingsItems
+}) {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex h-16 items-center justify-center border-b border-white/10">
+        <h1 className="text-xl font-bold text-white">LUMANA</h1>
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems
-          .filter((item) => !item.roles || item.roles.includes(user?.role as Role))
-          .map((item) => {
-            const isActive =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname.startsWith(item.href)
+        {nav.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/70 hover:bg-white/5 hover:text-white'
+              )}
+            >
+              <item.icon size={20} />
+              {item.label}
+            </Link>
+          )
+        })}
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium',
-                  isActive
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/70 hover:bg-white/5 hover:text-white'
-                )}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            )
-          })}
+        {settings.length > 0 && (
+          <>
+            <div className="my-3 border-t border-white/10" />
+            <p className="px-3 py-1 text-xs font-semibold uppercase text-white/40">Admin</p>
+            {settings.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/70 hover:bg-white/5 hover:text-white'
+                  )}
+                >
+                  <item.icon size={20} />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </>
+        )}
       </nav>
 
       <div className="border-t border-white/10 p-4">
@@ -94,6 +145,18 @@ export default function Sidebar() {
           <p className="text-sm font-medium text-white">{user?.name}</p>
           <p className="text-xs text-white/50">{user?.role?.replace('_', ' ')}</p>
         </div>
+        <Link
+          href="/profile"
+          className={cn(
+            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium',
+            pathname === '/profile'
+              ? 'bg-white/10 text-white'
+              : 'text-white/70 hover:bg-white/5 hover:text-white'
+          )}
+        >
+          <UserCircle size={20} />
+          Profile
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/70 hover:bg-white/5 hover:text-white"
@@ -102,6 +165,6 @@ export default function Sidebar() {
           Sign out
         </button>
       </div>
-    </aside>
+    </div>
   )
 }
