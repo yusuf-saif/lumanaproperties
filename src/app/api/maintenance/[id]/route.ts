@@ -4,8 +4,9 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 const patchSchema = z.object({
-  status: z.enum(['REPORTED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']),
+  status: z.enum(['REPORTED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']).optional(),
   resolutionNotes: z.string().optional(),
+  assignedToId: z.string().nullable().optional(),
 })
 
 export async function PATCH(
@@ -18,13 +19,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  if (session.user.role === 'STAFF') {
-    return NextResponse.json(
-      { error: 'Staff members cannot update issue status' },
-      { status: 403 }
-    )
-  }
-
   const body = await request.json()
   const parsed = patchSchema.safeParse(body)
 
@@ -35,30 +29,41 @@ export async function PATCH(
     )
   }
 
-  const { status, resolutionNotes } = parsed.data
+  const { status, resolutionNotes, assignedToId } = parsed.data
 
-  try {
-    const existing = await prisma.maintenanceIssue.findUnique({
-      where: { id: params.id },
-    })
+  const existing = await prisma.maintenanceIssue.findUnique({
+    where: { id: params.id },
+  })
 
-    if (!existing) {
-      return NextResponse.json({ error: 'Issue not found' }, { status: 404 })
-    }
+  if (!existing) {
+    return NextResponse.json({ error: 'Issue not found' }, { status: 404 })
+  }
 
-    const updateData: {
-      status: 'REPORTED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
-      resolvedById?: string
-      resolvedAt?: Date
-      resolutionNotes?: string
-    } = { status }
+  if (session.user.role === 'STAFF') {
+    return NextResponse.json(
+      { error: 'Staff members cannot update issues' },
+      { status: 403 }
+    )
+  }
 
+  const updateData: Record<string, unknown> = {}
+
+  if (assignedToId !== undefined) {
+    updateData.assignedToId = assignedToId
+  }
+
+  if (status) {
+    updateData.status = status
     if (status === 'RESOLVED' || status === 'CLOSED') {
       updateData.resolvedById = session.user.id
       updateData.resolvedAt = new Date()
-      updateData.resolutionNotes = resolutionNotes || undefined
+      if (resolutionNotes) {
+        updateData.resolutionNotes = resolutionNotes
+      }
     }
+  }
 
+  try {
     const updated = await prisma.maintenanceIssue.update({
       where: { id: params.id },
       data: updateData,

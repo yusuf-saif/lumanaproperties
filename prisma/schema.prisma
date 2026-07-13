@@ -185,13 +185,22 @@ model MaintenanceIssue {
 }
 
 model InviteToken {
-  id          String   @id @default(cuid())
-  email       String
-  role        Role
-  token       String   @unique @default(cuid())
-  used        Boolean  @default(false)
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  email     String
+  role      Role
+  token     String   @unique
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model IncomeRecord {

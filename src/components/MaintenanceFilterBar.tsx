@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { formatDateTime } from '@/lib/utils/format'
@@ -187,7 +188,14 @@ export default function MaintenanceFilterBar({ issues }: MaintenanceFilterBarPro
                   <td className="px-4 py-3 text-text-main">
                     {issue.room.area.name} — {issue.room.name}
                   </td>
-                  <td className="px-4 py-3 text-text-main">{issue.title}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/maintenance/${issue.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {issue.title}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3">
                     <Badge variant={priorityVariant[issue.priority]}>
                       {issue.priority}

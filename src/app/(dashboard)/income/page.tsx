@@ -57,7 +57,7 @@ export default async function IncomePage() {
     <div>
       <Topbar title="Income" />
       <div className="p-6">
-        <IncomeFilterBar records={formatted} properties={properties} />
+        <IncomeFilterBar records={formatted} properties={properties} currentUserRole={session.user.role} />
       </div>
     </div>
   )

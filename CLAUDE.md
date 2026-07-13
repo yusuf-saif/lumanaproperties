@@ -44,6 +44,9 @@
 | components/forms/DailyReportForm.tsx | Yes  | Per-room daily report submission         |
 | components/forms/MaintenanceForm.tsx  | Yes  | Maintenance issue submission form        |
 | components/forms/IncomeForm.tsx       | Yes  | Income record submission form            |
+| components/forms/ForgotPasswordForm.tsx | Yes | Forgot password email form               |
+| components/forms/ResetPasswordForm.tsx  | Yes | Reset password form with token           |
+| components/MaintenanceActionPanel.tsx | Yes  | Maintenance assign + status actions       |
 | components/Providers.tsx          | Yes     | SessionProvider wrapper                  |
 | components/MaintenanceFilterBar.tsx | Yes   | Maintenance issue list + filter + status |
 | components/IncomeFilterBar.tsx     | Yes    | Income records table + filter + CSV      |
@@ -61,7 +64,7 @@
 | lib/utils/format.ts   | Currency, date, enum formatting            |
 
 ## Prisma Models
-User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteToken, IncomeRecord
+User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteToken, PasswordResetToken, IncomeRecord
 
 ## Enums
 - **Role:** SUPER_ADMIN | PROPERTY_MANAGER | STAFF | VIEWER
@@ -91,6 +94,9 @@ User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteT
 | PATCH  | /api/settings/rooms/[id]              | Update room status/details           |
 | POST   | /api/settings/users/invite            | Send user invite email               |
 | PATCH  | /api/settings/users/[id]              | Update user role/properties          |
+| POST   | /api/auth/forgot-password             | Request password reset email         |
+| POST   | /api/auth/reset-password              | Reset password with token            |
+| PATCH  | /api/income/[id]                      | Verify/unverify income record        |
 
 ## Session Shape
 ```ts
@@ -187,6 +193,20 @@ session.user = {
 - [x] API: PATCH /api/settings/rooms/[id] (dailyRate, OUT_OF_SERVICE)
 - [x] API: POST /api/settings/users/invite (with Resend email)
 - [x] API: PATCH /api/settings/users/[id]
+
+### Phase 3.5 — Complete
+- [x] Forgot password flow (request form, email via Resend, reset page)
+- [x] PasswordResetToken model (1-hour expiry, single use, crypto.randomBytes token)
+- [x] Reset password page with token validation
+- [x] Login page: added forgot password link
+- [x] Auth guard: whitelist /forgot-password and /reset-password for unauthenticated users
+- [x] InviteToken token switched to crypto.randomBytes(32).toString('hex')
+- [x] Maintenance detail page: full issue view with timeline, photos, resolution notes
+- [x] MaintenanceActionPanel: assign to user, update status with resolution notes
+- [x] Maintenance board rows now link to detail page
+- [x] Income verification: verify/unverify per record (manager only)
+- [x] API: PATCH /api/income/[id] for verification toggle
+- [x] Pending verification StatCard on income dashboard
 
 ### Remaining
 - [ ] Dashboard charts/analytics

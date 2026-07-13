@@ -37,6 +37,7 @@ export default async function MaintenancePage() {
         room: { include: { area: true } },
         property: { select: { name: true } },
         raisedBy: { select: { name: true } },
+        assignedTo: { select: { name: true } },
       },
       orderBy: [{ priority: 'asc' }, { createdAt: 'desc' }],
     })

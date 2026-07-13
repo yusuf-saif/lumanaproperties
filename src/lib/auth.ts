@@ -94,13 +94,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async authorized({ auth, request }) {
       const isLoggedIn = !!auth
-      const isOnLoginPage = request.nextUrl.pathname.startsWith('/login')
+      const { pathname } = request.nextUrl
+      const publicRoutes = ['/login', '/forgot-password', '/reset-password']
+      const isPublicRoute = publicRoutes.some((r) => pathname.startsWith(r))
 
-      if (!isLoggedIn && !isOnLoginPage) {
+      if (!isLoggedIn && !isPublicRoute) {
         return Response.redirect(new URL('/login', request.nextUrl))
       }
 
-      if (isLoggedIn && isOnLoginPage) {
+      if (isLoggedIn && isPublicRoute) {
         return Response.redirect(new URL('/', request.nextUrl))
       }
 

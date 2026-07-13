@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import StatCard from '@/components/ui/StatCard'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency, formatEnum } from '@/lib/utils/format'
-import { DollarSign, Download, Calendar } from 'lucide-react'
+import { DollarSign, Download, Calendar, CheckCircle } from 'lucide-react'
 
 interface IncomeRecord {
   id: string
@@ -27,6 +27,7 @@ interface IncomeRecord {
 interface IncomeFilterBarProps {
   records: IncomeRecord[]
   properties: Array<{ id: string; name: string }>
+  currentUserRole: string
 }
 
 function startOfMonth(): string {
@@ -39,33 +40,47 @@ function today(): string {
   return d.toISOString().split('T')[0]
 }
 
-export function IncomeFilterBar({ records, properties }: IncomeFilterBarProps) {
+export function IncomeFilterBar({
+  records,
+  properties,
+  currentUserRole,
+}: IncomeFilterBarProps) {
   const [propertyFilter, setPropertyFilter] = useState<string>('ALL')
   const [paymentFilter, setPaymentFilter] = useState<string>('ALL')
   const [sourceFilter, setSourceFilter] = useState<string>('ALL')
+  const [verifiedFilter, setVerifiedFilter] = useState<string>('ALL')
   const [dateFrom, setDateFrom] = useState(startOfMonth())
   const [dateTo, setDateTo] = useState(today())
+  const [localRecords, setLocalRecords] = useState(records)
+
+  const canVerify =
+    currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'PROPERTY_MANAGER'
 
   const filtered = useMemo(() => {
-    return records.filter((r) => {
+    return localRecords.filter((r) => {
       if (propertyFilter !== 'ALL' && r.property !== propertyFilter) return false
       if (paymentFilter !== 'ALL' && r.paymentMethod !== paymentFilter) return false
       if (sourceFilter !== 'ALL' && r.source !== sourceFilter) return false
+      if (verifiedFilter !== 'ALL') {
+        if (verifiedFilter === 'VERIFIED' && !r.verified) return false
+        if (verifiedFilter === 'PENDING' && r.verified) return false
+      }
       const recordDate = r.recordDate
       if (recordDate < dateFrom || recordDate > dateTo) return false
       return true
     })
-  }, [records, propertyFilter, paymentFilter, sourceFilter, dateFrom, dateTo])
+  }, [localRecords, propertyFilter, paymentFilter, sourceFilter, verifiedFilter, dateFrom, dateTo])
 
   const totalIncome = filtered.reduce((sum, r) => sum + r.amount, 0)
-  const thisMonth = records.filter((r) => {
+  const pendingCount = localRecords.filter((r) => !r.verified).length
+  const thisMonth = localRecords.filter((r) => {
     const d = new Date(r.recordDate)
     const now = new Date()
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   })
   const thisMonthTotal = thisMonth.reduce((sum, r) => sum + r.amount, 0)
 
-  const lastMonth = records.filter((r) => {
+  const lastMonth = localRecords.filter((r) => {
     const d = new Date(r.recordDate)
     const now = new Date()
     const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1)
@@ -73,11 +88,44 @@ export function IncomeFilterBar({ records, properties }: IncomeFilterBarProps) {
   })
   const lastMonthTotal = lastMonth.reduce((sum, r) => sum + r.amount, 0)
 
-  const ytd = records.filter((r) => {
+  const ytd = localRecords.filter((r) => {
     const d = new Date(r.recordDate)
     return d.getFullYear() === new Date().getFullYear()
   })
   const ytdTotal = ytd.reduce((sum, r) => sum + r.amount, 0)
+
+  const handleVerifyToggle = useCallback(
+    async (recordId: string, currentVerified: boolean) => {
+      setLocalRecords((prev) =>
+        prev.map((r) =>
+          r.id === recordId ? { ...r, verified: !currentVerified } : r
+        )
+      )
+
+      try {
+        const res = await fetch(`/api/income/${recordId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ verified: !currentVerified }),
+        })
+
+        if (!res.ok) {
+          setLocalRecords((prev) =>
+            prev.map((r) =>
+              r.id === recordId ? { ...r, verified: currentVerified } : r
+            )
+          )
+        }
+      } catch {
+        setLocalRecords((prev) =>
+          prev.map((r) =>
+            r.id === recordId ? { ...r, verified: currentVerified } : r
+          )
+        )
+      }
+    },
+    []
+  )
 
   function exportCSV() {
     const headers = ['Date', 'Property', 'Room', 'Amount', 'Payment Method', 'Source', 'Guest', 'Reference', 'Verified', 'Recorded By']
@@ -109,7 +157,7 @@ export function IncomeFilterBar({ records, properties }: IncomeFilterBarProps) {
         <StatCard title="Total" value={formatCurrency(totalIncome)} subtitle="Filtered" icon={<DollarSign />} color="success" />
         <StatCard title="This Month" value={formatCurrency(thisMonthTotal)} subtitle="Current month" icon={<Calendar />} color="primary" />
         <StatCard title="Last Month" value={formatCurrency(lastMonthTotal)} subtitle="Previous month" icon={<Calendar />} color="warning" />
-        <StatCard title="YTD" value={formatCurrency(ytdTotal)} subtitle={new Date().getFullYear().toString()} icon={<DollarSign />} color="primary" />
+        <StatCard title="Pending" value={pendingCount} subtitle="Unverified records" icon={<CheckCircle />} color="warning" />
       </div>
 
       <Card className="p-4">
@@ -175,6 +223,18 @@ export function IncomeFilterBar({ records, properties }: IncomeFilterBarProps) {
               <option value="OTHER">Other</option>
             </select>
           </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-text-sub">Verified</label>
+            <select
+              value={verifiedFilter}
+              onChange={(e) => setVerifiedFilter(e.target.value)}
+              className="border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="ALL">All</option>
+              <option value="PENDING">Pending</option>
+              <option value="VERIFIED">Verified</option>
+            </select>
+          </div>
           <Button variant="ghost" size="sm" onClick={exportCSV} className="flex items-center gap-2">
             <Download className="h-4 w-4" />
             Export CSV
@@ -185,7 +245,7 @@ export function IncomeFilterBar({ records, properties }: IncomeFilterBarProps) {
       <Card>
         <div className="p-4 border-b border-border">
           <p className="text-sm text-text-sub">
-            Showing {filtered.length} of {records.length} records
+            Showing {filtered.length} of {localRecords.length} records
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -200,13 +260,17 @@ export function IncomeFilterBar({ records, properties }: IncomeFilterBarProps) {
                 <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Payment</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Source</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Reference</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Verified</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Recorded By</th>
+                {canVerify && (
+                  <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-text-sub">
+                  <td colSpan={canVerify ? 11 : 10} className="px-4 py-8 text-center text-text-sub">
                     No income records match your filters
                   </td>
                 </tr>
@@ -229,7 +293,23 @@ export function IncomeFilterBar({ records, properties }: IncomeFilterBarProps) {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-text-sub">{record.reference ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <Badge variant={record.verified ? 'success' : 'warning'}>
+                        {record.verified ? 'Verified' : 'Pending'}
+                      </Badge>
+                    </td>
                     <td className="px-4 py-3 text-sm text-text-sub">{record.recordedBy}</td>
+                    {canVerify && (
+                      <td className="px-4 py-3 text-sm">
+                        <Button
+                          size="sm"
+                          variant={record.verified ? 'ghost' : 'primary'}
+                          onClick={() => handleVerifyToggle(record.id, record.verified)}
+                        >
+                          {record.verified ? 'Unverify' : 'Verify'}
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

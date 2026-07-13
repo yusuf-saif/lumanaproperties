@@ -81,6 +81,14 @@ export default function LoginForm() {
         {errors.password && (
           <p className="mt-1 text-sm text-danger">{errors.password.message}</p>
         )}
+        <div className="mt-1 text-right">
+          <a
+            href="/forgot-password"
+            className="text-xs text-primary hover:underline"
+          >
+            Forgot password?
+          </a>
+        </div>
       </div>
 
       {errors.root && (
