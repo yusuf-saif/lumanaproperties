@@ -5,13 +5,13 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency, formatEnum } from '@/lib/utils/format'
-import { FileText, Download, Loader2, AlertCircle } from 'lucide-react'
+import { FileText, Download, Loader2, AlertCircle, CheckCircle, TrendingUp, Wrench, Users } from 'lucide-react'
 
 interface ReportGeneratorProps {
   properties: Array<{ id: string; name: string }>
 }
 
-type ReportType = 'occupancy' | 'maintenance' | 'income' | 'guest' | 'daily-ops'
+type ReportType = 'occupancy' | 'maintenance' | 'income' | 'guest' | 'daily-ops' | 'staff-performance' | 'consolidated-summary'
 
 const REPORT_TYPES = [
   { value: 'occupancy' as ReportType, label: 'Occupancy Report', description: 'Room status breakdown by property' },
@@ -19,6 +19,8 @@ const REPORT_TYPES = [
   { value: 'income' as ReportType, label: 'Income Report', description: 'Revenue by property, payment method, source' },
   { value: 'guest' as ReportType, label: 'Guest Report', description: 'Guest stays and booking sources' },
   { value: 'daily-ops' as ReportType, label: 'Daily Operations', description: 'Full daily report detail' },
+  { value: 'staff-performance' as ReportType, label: 'Staff Performance', description: 'Submissions, timeliness, maintenance activity' },
+  { value: 'consolidated-summary' as ReportType, label: 'Consolidated Summary', description: 'Executive overview with highlights' },
 ]
 
 function last7Days(): string {
@@ -31,6 +33,18 @@ function today(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+type ResultData = Array<Record<string, unknown>> | Record<string, unknown> | null
+
+interface SummaryData {
+  period: { from: string; to: string }
+  occupancy: { rate: number; totalNights: number; occupiedNights: number }
+  maintenance: { total: number; open: number; resolved: number; avgResolutionHours: number; criticalOpen: number }
+  income: { total: number; byProperty: Array<{ property: string; nights: number; income: number; issues: number }>; bySource: Array<{ source: string; amount: number }>; topRoom: { name: string; amount: number } | null }
+  submissions: { expected: number; submitted: number; rate: number }
+  highlights: string[]
+  lowlights: string[]
+}
+
 export function ReportGenerator({ properties }: ReportGeneratorProps) {
   const [type, setType] = useState<ReportType>('occupancy')
   const [selectedProperties, setSelectedProperties] = useState<string[]>([])
@@ -38,7 +52,7 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
   const [to, setTo] = useState(today())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<unknown[] | null>(null)
+  const [result, setResult] = useState<ResultData>(null)
   const [resultType, setResultType] = useState<ReportType | null>(null)
 
   function toggleProperty(id: string) {
@@ -81,75 +95,114 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
     let headers: string[] = []
     let rows: string[][] = []
 
-    switch (resultType) {
-      case 'occupancy':
-        headers = ['Date', 'Property', 'Room', 'Status', 'Guest', 'Guest Count']
-        rows = (result as Array<Record<string, unknown>>).map((r) => [
-          String(r.date ?? '').split('T')[0],
-          String(r.property ?? ''),
-          String(r.room ?? ''),
-          String(r.occupancyStatus ?? ''),
-          String(r.guestName ?? ''),
-          String(r.guestCount ?? 0),
-        ])
-        break
-      case 'maintenance':
-        headers = ['Title', 'Priority', 'Status', 'Category', 'Property', 'Room', 'Raised By', 'Assigned To', 'Resolved By', 'Created', 'Resolved', 'Hours']
-        rows = (result as Array<Record<string, unknown>>).map((r) => [
-          String(r.title ?? ''),
-          String(r.priority ?? ''),
-          String(r.status ?? ''),
-          String(r.category ?? ''),
-          String(r.property ?? ''),
-          String(r.room ?? ''),
-          String(r.raisedBy ?? ''),
-          String(r.assignedTo ?? ''),
-          String(r.resolvedBy ?? ''),
-          String(r.createdAt ?? ''),
-          String(r.resolvedAt ?? ''),
-          String(r.resolutionTime ?? ''),
-        ])
-        break
-      case 'income':
-        headers = ['Property', 'Room', 'Amount', 'Payment', 'Source', 'Guest', 'Date', 'Reference', 'Verified', 'Recorded By']
-        rows = (result as Array<Record<string, unknown>>).map((r) => [
-          String(r.property ?? ''),
-          String(r.room ?? ''),
-          String(r.amount ?? 0),
-          String(r.paymentMethod ?? ''),
-          String(r.source ?? ''),
-          String(r.guestName ?? ''),
-          String(r.recordDate ?? ''),
-          String(r.reference ?? ''),
-          String(r.verified ?? false),
-          String(r.recordedBy ?? ''),
-        ])
-        break
-      case 'guest':
-        headers = ['Guest', 'Property', 'Room', 'Date', 'Amount', 'Source']
-        rows = (result as Array<Record<string, unknown>>).map((r) => [
-          String(r.guestName ?? ''),
-          String(r.property ?? ''),
-          String(r.room ?? ''),
-          String(r.recordDate ?? ''),
-          String(r.amount ?? 0),
-          String(r.source ?? ''),
-        ])
-        break
-      case 'daily-ops':
-        headers = ['Date', 'Property', 'Room', 'Status', 'Guest', 'Guest Count', 'Submitted By', 'Notes']
-        rows = (result as Array<Record<string, unknown>>).map((r) => [
-          String(r.date ?? '').split('T')[0],
-          String(r.property ?? ''),
-          String(r.room ?? ''),
-          String(r.occupancyStatus ?? ''),
-          String(r.guestName ?? ''),
-          String(r.guestCount ?? 0),
-          String(r.submittedBy ?? ''),
-          String(r.notes ?? ''),
-        ])
-        break
+    if (resultType === 'consolidated-summary' && !Array.isArray(result)) {
+      const s = result as unknown as SummaryData
+      headers = ['Section', 'Metric', 'Value']
+      rows = [
+        ['Occupancy', 'Rate', `${s.occupancy.rate}%`],
+        ['Occupancy', 'Total Nights', String(s.occupancy.totalNights)],
+        ['Occupancy', 'Occupied Nights', String(s.occupancy.occupiedNights)],
+        ['Maintenance', 'Total Issues', String(s.maintenance.total)],
+        ['Maintenance', 'Open', String(s.maintenance.open)],
+        ['Maintenance', 'Resolved', String(s.maintenance.resolved)],
+        ['Maintenance', 'Avg Resolution (hrs)', String(s.maintenance.avgResolutionHours)],
+        ['Maintenance', 'Critical Open', String(s.maintenance.criticalOpen)],
+        ['Income', 'Total', formatCurrency(s.income.total)],
+        ...s.income.byProperty.map((p) => ['Income by Property', p.property, formatCurrency(p.income)]),
+        ...s.income.bySource.map((src) => ['Income by Source', src.source, formatCurrency(src.amount)]),
+        ['Submissions', 'Expected', String(s.submissions.expected)],
+        ['Submissions', 'Submitted', String(s.submissions.submitted)],
+        ['Submissions', 'Rate', `${s.submissions.rate}%`],
+        ...s.highlights.map((h) => ['Highlight', h, '']),
+        ...s.lowlights.map((l) => ['Lowlight', l, '']),
+      ]
+    } else if (Array.isArray(result)) {
+      switch (resultType) {
+        case 'occupancy':
+          headers = ['Date', 'Property', 'Room', 'Status', 'Guest', 'Guest Count']
+          rows = result.map((r) => [
+            String(r.date ?? '').split('T')[0],
+            String(r.property ?? ''),
+            String(r.room ?? ''),
+            String(r.occupancyStatus ?? ''),
+            String(r.guestName ?? ''),
+            String(r.guestCount ?? 0),
+          ])
+          break
+        case 'maintenance':
+          headers = ['Title', 'Priority', 'Status', 'Category', 'Property', 'Room', 'Raised By', 'Assigned To', 'Resolved By', 'Created', 'Resolved', 'Hours']
+          rows = result.map((r) => [
+            String(r.title ?? ''),
+            String(r.priority ?? ''),
+            String(r.status ?? ''),
+            String(r.category ?? ''),
+            String(r.property ?? ''),
+            String(r.room ?? ''),
+            String(r.raisedBy ?? ''),
+            String(r.assignedTo ?? ''),
+            String(r.resolvedBy ?? ''),
+            String(r.createdAt ?? ''),
+            String(r.resolvedAt ?? ''),
+            String(r.resolutionTime ?? ''),
+          ])
+          break
+        case 'income':
+          headers = ['Property', 'Room', 'Amount', 'Payment', 'Source', 'Guest', 'Date', 'Reference', 'Verified', 'Recorded By']
+          rows = result.map((r) => [
+            String(r.property ?? ''),
+            String(r.room ?? ''),
+            String(r.amount ?? 0),
+            String(r.paymentMethod ?? ''),
+            String(r.source ?? ''),
+            String(r.guestName ?? ''),
+            String(r.recordDate ?? ''),
+            String(r.reference ?? ''),
+            String(r.verified ?? false),
+            String(r.recordedBy ?? ''),
+          ])
+          break
+        case 'guest':
+          headers = ['Guest', 'Property', 'Room', 'Date', 'Amount', 'Source']
+          rows = result.map((r) => [
+            String(r.guestName ?? ''),
+            String(r.property ?? ''),
+            String(r.room ?? ''),
+            String(r.recordDate ?? ''),
+            String(r.amount ?? 0),
+            String(r.source ?? ''),
+          ])
+          break
+        case 'daily-ops':
+          headers = ['Date', 'Property', 'Room', 'Status', 'Guest', 'Guest Count', 'Submitted By', 'Notes']
+          rows = result.map((r) => [
+            String(r.date ?? '').split('T')[0],
+            String(r.property ?? ''),
+            String(r.room ?? ''),
+            String(r.occupancyStatus ?? ''),
+            String(r.guestName ?? ''),
+            String(r.guestCount ?? 0),
+            String(r.submittedBy ?? ''),
+            String(r.notes ?? ''),
+          ])
+          break
+        case 'staff-performance':
+          headers = ['Staff Name', 'Email', 'Role', 'Submissions', 'On Time', 'Late', 'Maintenance Reported', 'Maintenance Resolved', 'Last Submission']
+          rows = result.map((r) => [
+            String(r.name ?? ''),
+            String(r.email ?? ''),
+            String(r.role ?? ''),
+            String(r.submissionCount ?? 0),
+            String(r.onTimeCount ?? 0),
+            String(r.lateCount ?? 0),
+            String(r.maintenanceReported ?? 0),
+            String(r.maintenanceResolved ?? 0),
+            r.lastSubmission ? String(r.lastSubmission).split('T')[0] : '—',
+          ])
+          break
+      }
     }
+
+    if (headers.length === 0) return
 
     const csv = [headers.join(','), ...rows.map((row) => row.map((c) => `"${c}"`).join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -160,6 +213,10 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
     a.click()
     URL.revokeObjectURL(url)
   }
+
+  const isConsolidated = resultType === 'consolidated-summary' && result && !Array.isArray(result)
+  const summary = isConsolidated ? (result as unknown as SummaryData) : null
+  const isArrayResult = Array.isArray(result)
 
   return (
     <div className="space-y-6">
@@ -270,11 +327,157 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
         </Card>
       )}
 
-      {result && resultType && (
+      {summary && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-primary/10 p-2"><TrendingUp className="h-5 w-5 text-primary" /></div>
+                <div>
+                  <p className="text-2xl font-bold text-text-main">{summary.occupancy.rate}%</p>
+                  <p className="text-xs text-text-sub">Occupancy Rate</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-success/10 p-2"><FileText className="h-5 w-5 text-success" /></div>
+                <div>
+                  <p className="text-2xl font-bold text-text-main">{formatCurrency(summary.income.total)}</p>
+                  <p className="text-xs text-text-sub">Total Income</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-warning/10 p-2"><Wrench className="h-5 w-5 text-warning" /></div>
+                <div>
+                  <p className="text-2xl font-bold text-text-main">{summary.maintenance.open}</p>
+                  <p className="text-xs text-text-sub">Open Issues</p>
+                </div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-danger/10 p-2"><Users className="h-5 w-5 text-danger" /></div>
+                <div>
+                  <p className="text-2xl font-bold text-text-main">{summary.submissions.rate}%</p>
+                  <p className="text-xs text-text-sub">Submission Rate</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <Card>
+            <div className="p-4 border-b border-border">
+              <h3 className="font-medium text-text-main">Occupancy by Property</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-surface">
+                    <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Property</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Occupied Nights</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Income</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Issues</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.income.byProperty.map((p, i) => (
+                    <tr key={i} className="border-b border-border hover:bg-surface transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium">{p.property}</td>
+                      <td className="px-4 py-3 text-sm text-right">{p.nights}</td>
+                      <td className="px-4 py-3 text-sm text-right">{formatCurrency(p.income)}</td>
+                      <td className="px-4 py-3 text-sm text-right">{p.issues}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card>
+              <div className="p-4 border-b border-border">
+                <h3 className="font-medium text-text-main">Maintenance Summary</h3>
+              </div>
+              <div className="p-4 space-y-3 text-sm">
+                <div className="flex justify-between"><span className="text-text-sub">Total Issues</span><span className="text-text-main">{summary.maintenance.total}</span></div>
+                <div className="flex justify-between"><span className="text-text-sub">Open</span><span className="text-text-main">{summary.maintenance.open}</span></div>
+                <div className="flex justify-between"><span className="text-text-sub">Resolved</span><span className="text-text-main">{summary.maintenance.resolved}</span></div>
+                <div className="flex justify-between"><span className="text-text-sub">Avg Resolution</span><span className="text-text-main">{summary.maintenance.avgResolutionHours} hrs</span></div>
+                <div className="flex justify-between"><span className="text-text-sub">Critical Open</span><span className="text-danger">{summary.maintenance.criticalOpen}</span></div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="p-4 border-b border-border">
+                <h3 className="font-medium text-text-main">Income by Source</h3>
+              </div>
+              <div className="p-4 space-y-3 text-sm">
+                {summary.income.bySource.map((src, i) => (
+                  <div key={i} className="flex justify-between">
+                    <span className="text-text-sub">{formatEnum(src.source)}</span>
+                    <span className="text-text-main font-medium">{formatCurrency(src.amount)}</span>
+                  </div>
+                ))}
+                {summary.income.topRoom && (
+                  <div className="border-t border-border pt-3 mt-3">
+                    <p className="text-xs text-text-sub">Top Earning Room</p>
+                    <p className="font-medium text-text-main">{summary.income.topRoom.name} — {formatCurrency(summary.income.topRoom.amount)}</p>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {summary.highlights.length > 0 && (
+            <Card>
+              <div className="p-4 border-b border-border">
+                <h3 className="font-medium text-success flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" /> Highlights
+                </h3>
+              </div>
+              <div className="p-4">
+                <ul className="space-y-2">
+                  {summary.highlights.map((h, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-text-main">
+                      <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-success" />
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Card>
+          )}
+
+          {summary.lowlights.length > 0 && (
+            <Card>
+              <div className="p-4 border-b border-border">
+                <h3 className="font-medium text-warning flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" /> Lowlights
+                </h3>
+              </div>
+              <div className="p-4">
+                <ul className="space-y-2">
+                  {summary.lowlights.map((l, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-text-main">
+                      <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-warning" />
+                      {l}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {isArrayResult && resultType && result && !isConsolidated && (
         <Card>
           <div className="p-4 border-b border-border flex items-center justify-between">
-            <h3 className="font-medium text-text-main capitalize">{resultType} Report</h3>
-            <Badge variant="info">{result.length} records</Badge>
+            <h3 className="font-medium text-text-main capitalize">{resultType.replace('-', ' ')} Report</h3>
+            <Badge variant="info">{(result as unknown[]).length} records</Badge>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -331,6 +534,18 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Status</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Guest</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Submitted By</th>
+                    </>
+                  )}
+                  {resultType === 'staff-performance' && (
+                    <>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Staff Name</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Email</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Submissions</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">On Time</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Late</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Issues Raised</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-text-sub">Issues Resolved</th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-text-sub">Last Submission</th>
                     </>
                   )}
                 </tr>
@@ -407,13 +622,25 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                         <td className="px-4 py-3 text-sm text-text-sub">{String(row.submittedBy ?? '')}</td>
                       </>
                     )}
+                    {resultType === 'staff-performance' && (
+                      <>
+                        <td className="px-4 py-3 text-sm font-medium">{String(row.name ?? '')}</td>
+                        <td className="px-4 py-3 text-sm text-text-sub">{String(row.email ?? '')}</td>
+                        <td className="px-4 py-3 text-sm text-right">{String(row.submissionCount ?? 0)}</td>
+                        <td className="px-4 py-3 text-sm text-right text-success">{String(row.onTimeCount ?? 0)}</td>
+                        <td className="px-4 py-3 text-sm text-right text-warning">{String(row.lateCount ?? 0)}</td>
+                        <td className="px-4 py-3 text-sm text-right">{String(row.maintenanceReported ?? 0)}</td>
+                        <td className="px-4 py-3 text-sm text-right">{String(row.maintenanceResolved ?? 0)}</td>
+                        <td className="px-4 py-3 text-sm">{row.lastSubmission ? String(row.lastSubmission).split('T')[0] : '—'}</td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
-            {result.length > 50 && (
+            {(result as unknown[]).length > 50 && (
               <div className="p-3 text-center text-sm text-text-sub">
-                Showing first 50 of {result.length} records. Export CSV for full data.
+                Showing first 50 of {(result as unknown[]).length} records. Export CSV for full data.
               </div>
             )}
           </div>

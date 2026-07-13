@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Building, Plus, ChevronDown, ChevronUp, MapPin, BedDouble } from 'lucide-react'
+import { Building, Plus, ChevronDown, ChevronUp, MapPin, BedDouble, Eye } from 'lucide-react'
 
 interface Room {
   id: string
@@ -242,6 +242,13 @@ export function PropertyManager({ initialProperties }: PropertyManagerProps) {
                     >
                       {property.active ? 'Archive' : 'Restore'}
                     </Button>
+                    <a
+                      href={`/properties/${property.id}?date=${new Date().toISOString().split('T')[0]}`}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-main transition-colors hover:bg-primary/5 hover:text-primary"
+                    >
+                      <Eye className="h-3 w-3" />
+                      View Availability
+                    </a>
                   </div>
 
                   <div>

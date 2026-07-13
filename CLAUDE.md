@@ -53,6 +53,7 @@
 | components/ReportFilterBar.tsx     | Yes    | Report history + missing reports + expand|
 | components/ReportGenerator.tsx     | Yes    | Report type/config/generate/export       |
 | components/PropertyManager.tsx     | Yes    | Property/area/room CRUD                  |
+| components/RoomAvailabilityGrid.tsx | Yes   | Room availability grid with status cards |
 | components/UserManager.tsx         | Yes    | User invite + role/property management   |
 
 ## Lib Map
@@ -85,7 +86,7 @@ User, Property, PropertyUser, Area, Room, DailyReport, MaintenanceIssue, InviteT
 | POST   | /api/maintenance                      | Submit maintenance issue             |
 | PATCH  | /api/maintenance/[id]                 | Update issue status                  |
 | POST   | /api/income                           | Submit income record                 |
-| POST   | /api/reports/generate                 | Generate report data by type         |
+| POST   | /api/reports/generate                 | Generate report data by type (7 types) |
 | GET    | /api/settings/properties              | List all properties (SUPER_ADMIN)    |
 | POST   | /api/settings/properties              | Create property (SUPER_ADMIN)        |
 | PATCH  | /api/settings/properties/[id]         | Update/archive property              |
@@ -207,6 +208,17 @@ session.user = {
 - [x] Income verification: verify/unverify per record (manager only)
 - [x] API: PATCH /api/income/[id] for verification toggle
 - [x] Pending verification StatCard on income dashboard
+
+### Phase 4 — Complete
+- [x] Properties list page with occupancy stats, room/area counts, "View Availability" button
+- [x] Properties/[id] room availability grid by date with date navigation arrows
+- [x] RoomAvailabilityGrid component: per-area sections, room cards with live status + report status, clickable for detail panel, quick status update (manager only)
+- [x] Sidebar: Properties nav item (Building2 icon, SUPER_ADMIN + PROPERTY_MANAGER only)
+- [x] Settings/properties page: "View Availability" link added per property
+- [x] Staff performance report (staff-performance): per-staff summary with submitted/assigned/resolved counts
+- [x] Consolidated summary report (consolidated-summary): overview cards + section tables + highlights/lowlights
+- [x] ReportGenerator: all 7 report types supported, non-table renderer for consolidated-summary
+- [x] API: POST /api/reports/generate — staff-performance and consolidated-summary cases added
 
 ### Remaining
 - [ ] Dashboard charts/analytics

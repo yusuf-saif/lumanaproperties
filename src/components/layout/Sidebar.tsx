@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Settings,
   LogOut,
+  Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { Role } from '@prisma/client'
@@ -24,6 +25,12 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: <LayoutDashboard size={20} /> },
+  {
+    label: 'Properties',
+    href: '/properties',
+    icon: <Building2 size={20} />,
+    roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER'],
+  },
   { label: 'Maintenance', href: '/maintenance', icon: <Wrench size={20} /> },
   { label: 'Income', href: '/income', icon: <DollarSign size={20} /> },
   { label: 'Reports', href: '/reports', icon: <FileText size={20} /> },
