@@ -9,10 +9,10 @@ import {
   DollarSign,
   FileText,
   ClipboardList,
-  Settings,
   LogOut,
   Building2,
   UserCircle,
+  Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { Session } from 'next-auth'
@@ -27,7 +27,8 @@ const navItems = [
 ]
 
 const settingsItems = [
-  { href: '/settings/properties', label: 'Admin', icon: Settings, roles: ['SUPER_ADMIN'] },
+  { href: '/settings/properties', label: 'Properties', icon: Building2, roles: ['SUPER_ADMIN'] },
+  { href: '/settings/users', label: 'Users', icon: Users, roles: ['SUPER_ADMIN'] },
 ]
 
 interface SidebarProps {
