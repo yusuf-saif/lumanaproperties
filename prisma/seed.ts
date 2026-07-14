@@ -4,18 +4,6 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const password = await bcrypt.hash('Admin@1234', 10)
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@lumana.ng' },
-    update: {},
-    create: {
-      name: 'Lumana Admin',
-      email: 'admin@lumana.ng',
-      password,
-      role: Role.SUPER_ADMIN,
-    },
-  })
-
   const property = await prisma.property.upsert({
     where: { id: 'seed-property-1' },
     update: {},
@@ -24,12 +12,6 @@ async function main() {
       name: 'Lumana Wuse',
       address: 'Wuse Zone 5, Abuja, FCT',
     },
-  })
-
-  await prisma.propertyUser.upsert({
-    where: { userId_propertyId: { userId: admin.id, propertyId: property.id } },
-    update: {},
-    create: { userId: admin.id, propertyId: property.id },
   })
 
   const area = await prisma.area.upsert({
@@ -56,12 +38,46 @@ async function main() {
     })
   }
 
+  const adminPassword = await bcrypt.hash('Admin@1234', 10)
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@lumana.ng' },
+    update: {},
+    create: {
+      name: 'Lumana Admin',
+      email: 'admin@lumana.ng',
+      password: adminPassword,
+      role: Role.SUPER_ADMIN,
+    },
+  })
+  await prisma.propertyUser.upsert({
+    where: { userId_propertyId: { userId: admin.id, propertyId: property.id } },
+    update: {},
+    create: { userId: admin.id, propertyId: property.id },
+  })
+
+  const managerPassword = await bcrypt.hash('Manager@1234', 10)
+  const manager = await prisma.user.upsert({
+    where: { email: 'manager@lumana.ng' },
+    update: { name: 'Property Manager' },
+    create: {
+      name: 'Property Manager',
+      email: 'manager@lumana.ng',
+      password: managerPassword,
+      role: Role.PROPERTY_MANAGER,
+    },
+  })
+  await prisma.propertyUser.upsert({
+    where: { userId_propertyId: { userId: manager.id, propertyId: property.id } },
+    update: {},
+    create: { userId: manager.id, propertyId: property.id },
+  })
+
   const staffPassword = await bcrypt.hash('Staff@1234', 10)
   const staff = await prisma.user.upsert({
     where: { email: 'staff@lumana.ng' },
-    update: {},
+    update: { name: 'Staff Member' },
     create: {
-      name: 'Lumana Staff',
+      name: 'Staff Member',
       email: 'staff@lumana.ng',
       password: staffPassword,
       role: Role.STAFF,
@@ -73,7 +89,28 @@ async function main() {
     create: { userId: staff.id, propertyId: property.id },
   })
 
-  console.log('Seed complete. Admin: admin@lumana.ng / Admin@1234')
+  const viewerPassword = await bcrypt.hash('Viewer@1234', 10)
+  const viewer = await prisma.user.upsert({
+    where: { email: 'viewer@lumana.ng' },
+    update: {},
+    create: {
+      name: 'Viewer Account',
+      email: 'viewer@lumana.ng',
+      password: viewerPassword,
+      role: Role.VIEWER,
+    },
+  })
+  await prisma.propertyUser.upsert({
+    where: { userId_propertyId: { userId: viewer.id, propertyId: property.id } },
+    update: {},
+    create: { userId: viewer.id, propertyId: property.id },
+  })
+
+  console.log('Seed complete. Users:')
+  console.log('  Admin:    admin@lumana.ng / Admin@1234')
+  console.log('  Manager:  manager@lumana.ng / Manager@1234')
+  console.log('  Staff:    staff@lumana.ng / Staff@1234')
+  console.log('  Viewer:   viewer@lumana.ng / Viewer@1234')
 }
 
 main()

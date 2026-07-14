@@ -1,6 +1,8 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import Topbar from '@/components/layout/Topbar'
 import MaintenanceFilterBar from '@/components/MaintenanceFilterBar'
 
@@ -55,9 +57,18 @@ export default async function MaintenancePage() {
       <Topbar title="Maintenance" />
       <div className="p-6">
         <div className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-text-main">
-            Maintenance Issues
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-text-main">
+              Maintenance Issues
+            </h2>
+            <Link
+              href="/submit/maintenance"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+            >
+              <Plus size={16} />
+              Log Issue
+            </Link>
+          </div>
           <div className="mt-6">
             {serialized.length === 0 ? (
               <p className="text-sm text-text-sub">

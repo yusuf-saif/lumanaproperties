@@ -1,6 +1,8 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import Topbar from '@/components/layout/Topbar'
 import { IncomeFilterBar } from '@/components/IncomeFilterBar'
 import IncomeImportModal from '@/components/IncomeImportModal'
@@ -60,11 +62,19 @@ export default async function IncomePage() {
     <div>
       <Topbar title="Income" />
       <div className="p-6">
-        {canImport && (
-          <div className="mb-4">
-            <IncomeImportModal />
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-text-main">Income Records</h2>
+          <div className="flex items-center gap-3">
+            {canImport && <IncomeImportModal />}
+            <Link
+              href="/submit/income"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+            >
+              <Plus size={16} />
+              Log Income
+            </Link>
           </div>
-        )}
+        </div>
         <IncomeFilterBar records={formatted} properties={properties} currentUserRole={session.user.role} />
       </div>
     </div>

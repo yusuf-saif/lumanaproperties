@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Topbar from '@/components/layout/Topbar'
+import SubmissionTabs from '@/components/ui/SubmissionTabs'
 import MaintenanceForm from '@/components/forms/MaintenanceForm'
 
 export const dynamic = 'force-dynamic'
@@ -74,6 +75,7 @@ export default async function SubmitMaintenancePage() {
     <div>
       <Topbar title="Report Maintenance Issue" />
       <div className="p-6">
+        <SubmissionTabs />
         <div className="rounded-xl border border-border bg-card p-6">
           {properties.length === 0 ? (
             <p className="text-sm text-text-sub">
