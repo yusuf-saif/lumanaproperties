@@ -210,7 +210,7 @@ function PropertyPage({ property, siteSettings, reportDate, pageNumber }: {
           <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Notes</Text>
         </View>
 
-        {property.rooms.length === 0 ? (
+        {(!property.rooms || property.rooms.length === 0) ? (
           <Text style={styles.emptyText}>No rooms data available</Text>
         ) : (
           property.rooms.map((room, i) => (
@@ -228,7 +228,7 @@ function PropertyPage({ property, siteSettings, reportDate, pageNumber }: {
         )}
       </View>
 
-      {property.maintenance.length > 0 && (
+      {property.maintenance && property.maintenance.length > 0 && (
         <View>
           <Text style={styles.sectionTitle}>Maintenance Issues</Text>
           <View style={styles.tableHeader}>
@@ -259,6 +259,27 @@ function PropertyPage({ property, siteSettings, reportDate, pageNumber }: {
 }
 
 export function DailyOpsPDF({ siteSettings, properties, reportDate }: DailyOpsPDFProps) {
+  if (!properties || properties.length === 0) {
+    return (
+      <Document>
+        <Page size="A4" style={styles.page}>
+          <View style={styles.header}>
+            <Text style={styles.orgName}>{siteSettings.orgName}</Text>
+            {siteSettings.orgTagline && (
+              <Text style={styles.tagline}>{siteSettings.orgTagline}</Text>
+            )}
+            <Text style={styles.reportTitle}>Daily Operations Report</Text>
+            <Text style={styles.reportDate}>Report Date: {reportDate}</Text>
+          </View>
+          <Text style={styles.emptyText}>No data available for the selected period.</Text>
+          {siteSettings.reportFooter && (
+            <Text style={styles.footer}>{siteSettings.reportFooter}</Text>
+          )}
+        </Page>
+      </Document>
+    )
+  }
+
   return (
     <Document>
       {properties.map((property, index) => (

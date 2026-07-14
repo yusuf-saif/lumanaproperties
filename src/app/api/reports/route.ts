@@ -36,6 +36,14 @@ export async function POST(request: Request) {
 
   const { propertyId, roomId, reportDate, occupancyStatus, guestName, guestCount, notes } = parsed.data
 
+  const hasAccess =
+    session.user.role === 'SUPER_ADMIN' ||
+    session.user.propertyIds.includes(propertyId)
+
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const reportDateObj = new Date(reportDate)
   reportDateObj.setHours(0, 0, 0, 0)
 

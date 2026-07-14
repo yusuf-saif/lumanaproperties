@@ -39,6 +39,14 @@ export async function POST(request: Request) {
 
   const { roomId, propertyId, amount, source, paymentMethod, recordDate, guestName, reference, notes } = parsed.data
 
+  const hasAccess =
+    session.user.role === 'SUPER_ADMIN' ||
+    session.user.propertyIds.includes(propertyId)
+
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   try {
     const record = await prisma.incomeRecord.create({
       data: {

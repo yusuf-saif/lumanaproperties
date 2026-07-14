@@ -40,6 +40,14 @@ export async function POST(request: Request) {
 
   const { propertyId, roomId, title, priority, category, description, assignedToId, photos } = parsed.data
 
+  const hasAccess =
+    session.user.role === 'SUPER_ADMIN' ||
+    session.user.propertyIds.includes(propertyId)
+
+  if (!hasAccess) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   try {
     const issue = await prisma.maintenanceIssue.create({
       data: {
