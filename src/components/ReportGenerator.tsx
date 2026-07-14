@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { formatCurrency, formatEnum } from '@/lib/utils/format'
 import { FileText, Download, Loader2, AlertCircle, CheckCircle, TrendingUp, Wrench, Users } from 'lucide-react'
+import { pdf } from '@react-pdf/renderer'
+import { DailyOpsPDF } from '@/components/reports/DailyOpsPDF'
 
 interface ReportGeneratorProps {
   properties: Array<{ id: string; name: string }>
@@ -54,6 +56,7 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ResultData>(null)
   const [resultType, setResultType] = useState<ReportType | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   function toggleProperty(id: string) {
     setSelectedProperties((prev) =>
@@ -214,6 +217,47 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
     URL.revokeObjectURL(url)
   }
 
+  async function downloadPDF() {
+    setPdfLoading(true)
+    try {
+      const res = await fetch('/api/reports/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          propertyIds: selectedProperties.length > 0 ? selectedProperties : undefined,
+          from,
+          to,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to generate PDF')
+        return
+      }
+
+      const blob = await pdf(
+        <DailyOpsPDF
+          siteSettings={data.siteSettings}
+          properties={data.properties}
+          reportDate={data.reportDate}
+        />
+      ).toBlob()
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `daily-ops-report-${from}-to-${to}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError('Failed to generate PDF')
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
   const isConsolidated = resultType === 'consolidated-summary' && result && !Array.isArray(result)
   const summary = isConsolidated ? (result as unknown as SummaryData) : null
   const isArrayResult = Array.isArray(result)
@@ -305,6 +349,19 @@ export function ReportGenerator({ properties }: ReportGeneratorProps) {
                 <>
                   <FileText className="h-4 w-4 mr-2" />
                   Generate Report
+                </>
+              )}
+            </Button>
+            <Button onClick={downloadPDF} disabled={pdfLoading} variant="ghost">
+              {pdfLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating PDF...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
                 </>
               )}
             </Button>

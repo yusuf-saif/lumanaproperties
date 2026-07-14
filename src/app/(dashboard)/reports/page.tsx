@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import Topbar from '@/components/layout/Topbar'
 import { ReportFilterBar } from '@/components/ReportFilterBar'
+import { ReportGenerator } from '@/components/ReportGenerator'
 
 export const dynamic = 'force-dynamic'
 
@@ -92,12 +93,13 @@ export default async function ReportsPage() {
   return (
     <div>
       <Topbar title="Reports" />
-      <div className="p-6">
+      <div className="p-6 space-y-6">
         <ReportFilterBar
           reports={formatted}
           properties={properties}
           missingReports={missingReports}
         />
+        <ReportGenerator properties={properties} />
       </div>
     </div>
   )

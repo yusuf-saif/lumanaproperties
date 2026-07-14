@@ -16,6 +16,7 @@ const config: Config = {
         danger: '#DC2626',
         warning: '#D97706',
         success: '#16A34A',
+        purple: '#8B5CF6',
         border: '#E2E8F0',
         'text-main': '#0F172A',
         'text-sub': '#64748B',

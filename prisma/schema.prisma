@@ -246,3 +246,11 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt(sort: Desc)])
 }
+
+model SiteSettings {
+  id           String   @id @default("default")
+  orgName      String   @default("Lumana Hotel Apartments")
+  orgTagline   String?
+  reportFooter String?
+  updatedAt    DateTime @updatedAt
+}

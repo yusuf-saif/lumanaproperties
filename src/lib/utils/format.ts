@@ -29,3 +29,14 @@ export function formatEnum(value: string): string {
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
+
+export function formatRoomType(type: string): string {
+  switch (type) {
+    case 'STUDIO': return 'Studio'
+    case 'ONE_BEDROOM': return '1 Bedroom'
+    case 'TWO_BEDROOM': return '2 Bedroom'
+    case 'THREE_BEDROOM': return '3 Bedroom'
+    case 'PENTHOUSE': return 'Penthouse'
+    default: return type
+  }
+}

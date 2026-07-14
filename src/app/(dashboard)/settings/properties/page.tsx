@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import Topbar from '@/components/layout/Topbar'
 import { PropertyManager } from '@/components/PropertyManager'
+import { SiteSettingsManager } from '@/components/SiteSettingsManager'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,7 +51,8 @@ export default async function PropertiesPage() {
   return (
     <div>
       <Topbar title="Property Management" />
-      <div className="p-6">
+      <div className="p-6 space-y-6">
+        <SiteSettingsManager />
         <PropertyManager initialProperties={formatted} />
       </div>
     </div>

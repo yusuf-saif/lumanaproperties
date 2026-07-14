@@ -13,6 +13,7 @@ import {
   Building2,
   UserCircle,
   Users,
+  BarChart2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import type { Session } from 'next-auth'
@@ -20,6 +21,7 @@ import type { Session } from 'next-auth'
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/properties', label: 'Properties', icon: Building2, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER'] },
+  { href: '/analytics', label: 'Analytics', icon: BarChart2, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/submit', label: 'Submit Report', icon: ClipboardList, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/income', label: 'Income', icon: DollarSign, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/maintenance', label: 'Maintenance', icon: Wrench, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
