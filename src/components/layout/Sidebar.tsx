@@ -20,14 +20,14 @@ import type { Session } from 'next-auth'
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/properties', label: 'Properties', icon: Building2, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER'] },
-  { href: '/submit', label: 'Daily Reports', icon: ClipboardList, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/submit', label: 'Submit Report', icon: ClipboardList, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/income', label: 'Income', icon: DollarSign, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
   { href: '/maintenance', label: 'Maintenance', icon: Wrench, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
-  { href: '/reports', label: 'Reports', icon: FileText, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
+  { href: '/reports', label: 'View Reports', icon: FileText, roles: ['SUPER_ADMIN', 'PROPERTY_MANAGER', 'STAFF', 'VIEWER'] },
 ]
 
 const settingsItems = [
-  { href: '/settings/properties', label: 'Settings', icon: Settings, roles: ['SUPER_ADMIN'] },
+  { href: '/settings/properties', label: 'Admin', icon: Settings, roles: ['SUPER_ADMIN'] },
 ]
 
 interface SidebarProps {

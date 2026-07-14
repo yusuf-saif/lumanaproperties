@@ -16,7 +16,7 @@ export default async function SubmitReportPage() {
   let properties: {
     id: string
     name: string
-    rooms: { id: string; name: string; status: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'OUT_OF_SERVICE' }[]
+    rooms: { id: string; name: string; type: string; status: string }[]
   }[] = []
 
   try {
@@ -29,7 +29,7 @@ export default async function SubmitReportPage() {
               include: {
                 rooms: {
                   where: { active: true },
-                  select: { id: true, name: true, status: true },
+                  select: { id: true, name: true, type: true, status: true },
                 },
               },
             },
@@ -52,18 +52,13 @@ export default async function SubmitReportPage() {
       <Topbar title="Submit Daily Report" />
       <div className="p-6">
         <div className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-text-main">
-            Daily Report Form
-          </h2>
-          <div className="mt-6">
-            {properties.length === 0 ? (
-              <p className="text-sm text-text-sub">
-                No properties assigned to your account. Contact an administrator.
-              </p>
-            ) : (
-              <DailyReportForm properties={properties} />
-            )}
-          </div>
+          {properties.length === 0 ? (
+            <p className="text-sm text-text-sub">
+              No properties assigned to your account. Contact an administrator.
+            </p>
+          ) : (
+            <DailyReportForm properties={properties} />
+          )}
         </div>
       </div>
     </div>

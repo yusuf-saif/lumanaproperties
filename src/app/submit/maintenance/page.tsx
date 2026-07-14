@@ -52,18 +52,13 @@ export default async function SubmitMaintenancePage() {
       <Topbar title="Report Maintenance Issue" />
       <div className="p-6">
         <div className="rounded-xl border border-border bg-card p-6">
-          <h2 className="text-lg font-semibold text-text-main">
-            Maintenance Issue Form
-          </h2>
-          <div className="mt-6">
-            {properties.length === 0 ? (
-              <p className="text-sm text-text-sub">
-                No properties assigned to your account. Contact an administrator.
-              </p>
-            ) : (
-              <MaintenanceForm properties={properties} />
-            )}
-          </div>
+          {properties.length === 0 ? (
+            <p className="text-sm text-text-sub">
+              No properties assigned to your account. Contact an administrator.
+            </p>
+          ) : (
+            <MaintenanceForm properties={properties} />
+          )}
         </div>
       </div>
     </div>

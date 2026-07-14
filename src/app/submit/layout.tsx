@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import SidebarStatic from '@/components/layout/SidebarStatic'
+import { SessionProvider } from 'next-auth/react'
+import DashboardShell from '@/components/layout/DashboardShell'
 
 export default async function SubmitLayout({
   children,
@@ -9,14 +10,13 @@ export default async function SubmitLayout({
 }) {
   const session = await auth()
 
-  if (!session) {
+  if (!session?.user) {
     redirect('/login')
   }
 
   return (
-    <div className="min-h-screen bg-surface">
-      <SidebarStatic />
-      <main className="ml-64 min-h-screen">{children}</main>
-    </div>
+    <SessionProvider session={session}>
+      <DashboardShell session={session}>{children}</DashboardShell>
+    </SessionProvider>
   )
 }

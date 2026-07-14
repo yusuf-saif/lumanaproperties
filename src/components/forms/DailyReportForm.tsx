@@ -7,6 +7,8 @@ import type { OccupancyStatus } from '@prisma/client'
 interface Room {
   id: string
   name: string
+  type: string
+  status: string
 }
 
 interface Property {
@@ -29,6 +31,8 @@ const occupancyStatusOptions: { value: OccupancyStatus; label: string; color: st
 interface RoomRow {
   roomId: string
   roomName: string
+  roomType: string
+  roomDbStatus: string
   occupancyStatus: OccupancyStatus
   guestName: string
   guestCount: string
@@ -36,6 +40,28 @@ interface RoomRow {
 }
 
 const today = () => new Date().toISOString().split('T')[0]
+
+const roomTypeLabel: Record<string, string> = {
+  STUDIO: 'Studio',
+  ONE_BEDROOM: '1 Bedroom',
+  TWO_BEDROOM: '2 Bedroom',
+  THREE_BEDROOM: '3 Bedroom',
+  PENTHOUSE: 'Penthouse',
+}
+
+const dbStatusLabel: Record<string, string> = {
+  AVAILABLE: 'Available',
+  OCCUPIED: 'Occupied',
+  MAINTENANCE: 'Maintenance',
+  OUT_OF_SERVICE: 'Out of Service',
+}
+
+const dbStatusColor: Record<string, string> = {
+  AVAILABLE: 'text-success',
+  OCCUPIED: 'text-primary',
+  MAINTENANCE: 'text-warning',
+  OUT_OF_SERVICE: 'text-danger',
+}
 
 export default function DailyReportForm({ properties }: DailyReportFormProps) {
   const [selectedPropertyId, setSelectedPropertyId] = useState(
@@ -61,6 +87,8 @@ export default function DailyReportForm({ properties }: DailyReportFormProps) {
         prop.rooms.map((r) => ({
           roomId: r.id,
           roomName: r.name,
+          roomType: r.type,
+          roomDbStatus: r.status,
           occupancyStatus: 'VACANT' as OccupancyStatus,
           guestName: '',
           guestCount: '1',
@@ -79,6 +107,11 @@ export default function DailyReportForm({ properties }: DailyReportFormProps) {
     setRoomRows((prev) =>
       prev.map((row, i) => (i === index ? { ...row, [field]: value } : row))
     )
+  }
+
+  const formatDateDisplay = (dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00')
+    return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,8 +154,8 @@ export default function DailyReportForm({ properties }: DailyReportFormProps) {
       if (warnings.length > 0) {
         setDuplicateWarnings(warnings)
       }
-      if (successCount > 0) {
-        setSuccessMsg(`${successCount} report(s) submitted successfully!`)
+      if (successCount > 0 && selectedProperty) {
+        setSuccessMsg(`Report submitted for ${selectedProperty.name} — ${formatDateDisplay(reportDate)}`)
       }
       if (successCount === 0 && warnings.length === 0) {
         setErrorMsg('No reports to submit')
@@ -135,29 +168,29 @@ export default function DailyReportForm({ properties }: DailyReportFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {successMsg && (
-        <div className="rounded-lg bg-success/10 p-4">
+        <div className="rounded-lg bg-success/10 border border-success/20 p-4">
           <p className="text-sm font-medium text-success">{successMsg}</p>
         </div>
       )}
 
       {errorMsg && (
-        <div className="rounded-lg bg-danger/10 p-4">
+        <div className="rounded-lg bg-danger/10 border border-danger/20 p-4">
           <p className="text-sm font-medium text-danger">{errorMsg}</p>
         </div>
       )}
 
       {duplicateWarnings.length > 0 && (
-        <div className="rounded-lg bg-warning/10 p-4">
+        <div className="rounded-lg bg-warning/10 border border-warning/20 p-4">
           {duplicateWarnings.map((w, i) => (
             <p key={i} className="text-sm font-medium text-warning">{w}</p>
           ))}
         </div>
       )}
 
-      <div className="space-y-4">
-        <h3 className="text-base font-semibold text-text-main">Report Details</h3>
+      <div className="space-y-3">
+        <h3 className="text-base font-semibold text-text-main">Property &amp; Date</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="property" className="block text-sm font-medium text-text-main">
@@ -193,25 +226,44 @@ export default function DailyReportForm({ properties }: DailyReportFormProps) {
         </div>
       </div>
 
+      {selectedProperty && (
+        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <p className="text-sm font-semibold text-primary">{selectedProperty.name}</p>
+          <p className="text-xs text-text-sub mt-1">
+            {selectedProperty.rooms.length} room{selectedProperty.rooms.length !== 1 ? 's' : ''} to report
+          </p>
+        </div>
+      )}
+
       {selectedProperty && roomRows.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <h3 className="text-base font-semibold text-text-main">Room Status</h3>
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-surface">
                 <tr>
                   <th className="px-4 py-3 font-medium text-text-sub">Room</th>
+                  <th className="px-4 py-3 font-medium text-text-sub">Type</th>
+                  <th className="px-4 py-3 font-medium text-text-sub">Current</th>
                   <th className="px-4 py-3 font-medium text-text-sub">Status</th>
                   <th className="px-4 py-3 font-medium text-text-sub">Guest Name</th>
-                  <th className="px-4 py-3 font-medium text-text-sub">Guest Count</th>
+                  <th className="px-4 py-3 font-medium text-text-sub">Guests</th>
                   <th className="px-4 py-3 font-medium text-text-sub">Notes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {roomRows.map((row, index) => (
-                  <tr key={row.roomId}>
-                    <td className="px-4 py-3 text-sm font-medium text-text-main">
+                  <tr key={row.roomId} className="hover:bg-surface/50">
+                    <td className="px-4 py-3 text-sm font-medium text-text-main whitespace-nowrap">
                       {row.roomName}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-text-sub whitespace-nowrap">
+                      {roomTypeLabel[row.roomType] ?? row.roomType}
+                    </td>
+                    <td className="px-4 py-3 text-xs whitespace-nowrap">
+                      <span className={dbStatusColor[row.roomDbStatus] ?? 'text-text-sub'}>
+                        {dbStatusLabel[row.roomDbStatus] ?? row.roomDbStatus}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <select
@@ -254,7 +306,7 @@ export default function DailyReportForm({ properties }: DailyReportFormProps) {
                             updateRow(index, 'guestCount', e.target.value)
                           }
                           min={1}
-                          className="w-20 rounded-md border border-border px-2 py-1 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                          className="w-16 rounded-md border border-border px-2 py-1 text-sm text-text-main focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       ) : (
                         <span className="text-text-sub">—</span>
@@ -279,11 +331,13 @@ export default function DailyReportForm({ properties }: DailyReportFormProps) {
         </div>
       )}
 
-      <div className="flex justify-end">
-        <Button type="submit" loading={isSubmitting} size="lg">
-          Submit Reports
-        </Button>
-      </div>
+      {selectedProperty && roomRows.length > 0 && (
+        <div className="flex justify-end">
+          <Button type="submit" loading={isSubmitting} size="lg">
+            Submit Report
+          </Button>
+        </div>
+      )}
     </form>
   )
 }
