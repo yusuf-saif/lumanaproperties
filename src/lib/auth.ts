@@ -86,15 +86,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       const customToken = token as CustomToken
-      if (customToken) {
-        session.user.id = customToken.id ?? ''
+      if (customToken?.id) {
+        session.user.id = customToken.id
         session.user.role = customToken.role ?? 'STAFF'
         session.user.propertyIds = customToken.propertyIds ?? []
       }
       return session
     },
-    async authorized() {
-      return true
+    async authorized({ auth }) {
+      return !!auth?.user?.id
     },
   },
 })
