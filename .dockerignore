@@ -8,4 +8,3 @@ AGENTS.md
 .env.*
 !.env.example
 tsconfig.tsbuildinfo
-prisma/migrations
