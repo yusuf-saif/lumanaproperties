@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import type { Role } from '@prisma/client'
@@ -31,7 +30,6 @@ interface CustomToken {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
-  adapter: PrismaAdapter(prisma),
   trustHost: true,
   session: { strategy: 'jwt' },
   pages: {
