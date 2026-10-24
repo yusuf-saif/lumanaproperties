@@ -29,11 +29,15 @@ interface CustomToken {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  secret:
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    'lumana-hotel-apartments-production-jwt-auth-secret-key-32chars-min-2026',
   trustHost: true,
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/login',
+    error: '/login',
   },
   providers: [
     Credentials({
@@ -43,32 +47,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
+        try {
+          if (!credentials?.email || !credentials?.password) return null
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-          include: {
-            propertyUsers: {
-              select: { propertyId: true },
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email as string },
+            include: {
+              propertyUsers: {
+                select: { propertyId: true },
+              },
             },
-          },
-        })
+          })
 
-        if (!user || !user.active) return null
+          if (!user || !user.active) return null
 
-        const passwordMatch = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        )
+          const passwordMatch = await bcrypt.compare(
+            credentials.password as string,
+            user.password
+          )
 
-        if (!passwordMatch) return null
+          if (!passwordMatch) return null
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          propertyIds: user.propertyUsers.map((pu) => pu.propertyId),
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            propertyIds: user.propertyUsers.map((pu) => pu.propertyId),
+          }
+        } catch (error) {
+          console.error('[auth] Authorize exception:', error)
+          return null
         }
       },
     }),
