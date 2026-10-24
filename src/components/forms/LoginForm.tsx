@@ -26,19 +26,23 @@ export default function LoginForm() {
   })
 
   async function onSubmit(data: LoginFormValues) {
-    const result = await signIn('credentials', {
-      email: data.email,
-      password: data.password,
-      redirect: false,
-    })
+    try {
+      const result = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        callbackUrl: '/',
+        redirect: false,
+      })
 
-    if (result?.error) {
-      setError('root', { message: 'Invalid email or password' })
-      return
+      if (result?.error) {
+        setError('root', { message: 'Invalid email or password' })
+        return
+      }
+
+      window.location.href = '/'
+    } catch {
+      setError('root', { message: 'Sign in failed. Please try again.' })
     }
-
-    router.push('/')
-    router.refresh()
   }
 
   return (
